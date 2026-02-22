@@ -4,7 +4,7 @@ import type { ChatResponse } from '../types'
 // API 基础配置
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
-  timeout: 60000, // LLM 调用可能较慢
+  timeout: 120000, // 增加超时时间到 120s
   headers: {
     'Content-Type': 'application/json'
   }
