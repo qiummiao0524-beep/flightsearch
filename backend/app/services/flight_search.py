@@ -221,7 +221,7 @@ class FlightSearchService:
         trip_info: dict,
         user_line_index: int = 1,
         selected_lines: list = None,
-        max_retries: int = 10
+        max_retries: int = 20
     ) -> dict:
         """执行搜索（支持轮询）
         
@@ -246,7 +246,8 @@ class FlightSearchService:
         last_resp_data = None
         
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            start_time = datetime.now()
+            async with httpx.AsyncClient(timeout=90.0) as client:
                 while retry_count < max_retries:
                     retry_count += 1
                     
@@ -305,8 +306,9 @@ class FlightSearchService:
                     if finished:
                         # 使用最后一次的航班结果
                         flights = self.transform_response(resp_data)
+                        duration = (datetime.now() - start_time).total_seconds()
                         if settings.DEBUG:
-                            print(f"[Search] 搜索完成, 共 {len(flights)} 个航班")
+                            print(f"[Search] 搜索完成, 共 {len(flights)} 个航班, 耗时 {duration:.2f}s")
                         return {
                             "success": True,
                             "flights": flights,

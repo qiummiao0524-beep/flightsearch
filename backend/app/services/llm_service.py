@@ -2,8 +2,7 @@
 import json
 import re
 from datetime import datetime, timedelta
-from typing import Optional
-from anthropic import Anthropic
+from openai import AsyncOpenAI
 from app.core.config import settings
 
 # 加载城市映射数据
@@ -266,15 +265,14 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
 
 
 class LLMService:
-    """LLM 服务类"""
+    """LLM 服务类 (DeepSeek 版)"""
     
     def __init__(self):
-        # 支持自定义 API 地址（如内部代理）
-        self.client = Anthropic(
-            api_key=settings.ANTHROPIC_API_KEY,
-            base_url=settings.ANTHROPIC_API_URL
+        self.client = AsyncOpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_API_URL
         )
-        self.model = settings.ANTHROPIC_MODEL
+        self.model = settings.DEEPSEEK_MODEL
     
     async def parse_intent(
         self, 
@@ -313,21 +311,29 @@ class LLMService:
         })
         
         try:
-            response = self.client.messages.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    *messages
+                ],
                 max_tokens=2000,
-                system=SYSTEM_PROMPT,
-                messages=messages
+                temperature=0.7,
+                stream=False
             )
             
             # 提取响应内容
-            content = response.content[0].text
+            content = response.choices[0].message.content
             
             # 解析 JSON
             result = self._extract_json(content)
             return result
             
         except Exception as e:
+            import traceback
+            print(f"DEBUG: LLM Parse Intent failed for message: {user_message}")
+            print(f"DEBUG: Error details: {str(e)}")
+            traceback.print_exc()
             return {
                 "status": "error",
                 "message": f"解析失败: {str(e)}",
