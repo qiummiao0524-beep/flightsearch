@@ -1,0 +1,24 @@
+[project]
+name = "flightsearch-backend"
+version = "0.1.0"
+description = "AI Flight Search Backend"
+authors = [
+    {name = "developer"}
+]
+readme = "README.md"
+requires-python = "^3.10"
+package-mode = false
+dependencies = [
+    "fastapi (>=0.128.6,<0.129.0)",
+    "uvicorn (>=0.40.0,<0.41.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "anthropic (>=0.79.0,<0.80.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)",
+    "pydantic (>=2.12.5,<3.0.0)",
+    "pydantic-settings (>=2.12.0,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
