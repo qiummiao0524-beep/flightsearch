@@ -4,176 +4,362 @@
       "city_name": "上海",
       "city_code": "SHA",
       "airports": [
-        {"code": "SHA", "name": "虹桥国际机场", "is_default": true},
-        {"code": "PVG", "name": "浦东国际机场", "is_default": false}
+        {
+          "code": "SHA",
+          "name": "虹桥国际机场",
+          "is_default": true
+        },
+        {
+          "code": "PVG",
+          "name": "浦东国际机场",
+          "is_default": false
+        }
       ]
     },
     {
       "city_name": "北京",
       "city_code": "BJS",
       "airports": [
-        {"code": "PEK", "name": "首都国际机场", "is_default": true},
-        {"code": "PKX", "name": "大兴国际机场", "is_default": false}
+        {
+          "code": "PEK",
+          "name": "首都国际机场",
+          "is_default": true
+        },
+        {
+          "code": "PKX",
+          "name": "大兴国际机场",
+          "is_default": false
+        }
       ]
     },
     {
       "city_name": "香港",
       "city_code": "HKG",
       "airports": [
-        {"code": "HKG", "name": "香港国际机场", "is_default": true}
+        {
+          "code": "HKG",
+          "name": "香港国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "广州",
       "city_code": "CAN",
       "airports": [
-        {"code": "CAN", "name": "白云国际机场", "is_default": true}
+        {
+          "code": "CAN",
+          "name": "白云国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "深圳",
       "city_code": "SZX",
       "airports": [
-        {"code": "SZX", "name": "宝安国际机场", "is_default": true}
+        {
+          "code": "SZX",
+          "name": "宝安国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "台北",
       "city_code": "TPE",
       "airports": [
-        {"code": "TPE", "name": "桃园国际机场", "is_default": true},
-        {"code": "TSA", "name": "松山机场", "is_default": false}
+        {
+          "code": "TPE",
+          "name": "桃园国际机场",
+          "is_default": true
+        },
+        {
+          "code": "TSA",
+          "name": "松山机场",
+          "is_default": false
+        }
       ]
     },
     {
       "city_name": "澳门",
       "city_code": "MFM",
       "airports": [
-        {"code": "MFM", "name": "澳门国际机场", "is_default": true}
+        {
+          "code": "MFM",
+          "name": "澳门国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "曼谷",
       "city_code": "BKK",
       "airports": [
-        {"code": "BKK", "name": "素万那普国际机场", "is_default": true},
-        {"code": "DMK", "name": "廊曼国际机场", "is_default": false}
+        {
+          "code": "BKK",
+          "name": "素万那普国际机场",
+          "is_default": true
+        },
+        {
+          "code": "DMK",
+          "name": "廊曼国际机场",
+          "is_default": false
+        }
       ]
     },
     {
       "city_name": "新加坡",
       "city_code": "SIN",
       "airports": [
-        {"code": "SIN", "name": "樟宜国际机场", "is_default": true}
+        {
+          "code": "SIN",
+          "name": "樟宜国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "东京",
       "city_code": "TYO",
       "airports": [
-        {"code": "NRT", "name": "成田国际机场", "is_default": true},
-        {"code": "HND", "name": "羽田国际机场", "is_default": false}
+        {
+          "code": "NRT",
+          "name": "成田国际机场",
+          "is_default": true
+        },
+        {
+          "code": "HND",
+          "name": "羽田国际机场",
+          "is_default": false
+        }
       ]
     },
     {
       "city_name": "首尔",
       "city_code": "SEL",
       "airports": [
-        {"code": "ICN", "name": "仁川国际机场", "is_default": true},
-        {"code": "GMP", "name": "金浦国际机场", "is_default": false}
+        {
+          "code": "ICN",
+          "name": "仁川国际机场",
+          "is_default": true
+        },
+        {
+          "code": "GMP",
+          "name": "金浦国际机场",
+          "is_default": false
+        }
       ]
     },
     {
       "city_name": "吉隆坡",
       "city_code": "KUL",
       "airports": [
-        {"code": "KUL", "name": "吉隆坡国际机场", "is_default": true}
+        {
+          "code": "KUL",
+          "name": "吉隆坡国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "成都",
       "city_code": "CTU",
       "airports": [
-        {"code": "CTU", "name": "双流国际机场", "is_default": true},
-        {"code": "TFU", "name": "天府国际机场", "is_default": false}
+        {
+          "code": "CTU",
+          "name": "双流国际机场",
+          "is_default": true
+        },
+        {
+          "code": "TFU",
+          "name": "天府国际机场",
+          "is_default": false
+        }
       ]
     },
     {
       "city_name": "杭州",
       "city_code": "HGH",
       "airports": [
-        {"code": "HGH", "name": "萧山国际机场", "is_default": true}
+        {
+          "code": "HGH",
+          "name": "萧山国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "南京",
       "city_code": "NKG",
       "airports": [
-        {"code": "NKG", "name": "禄口国际机场", "is_default": true}
+        {
+          "code": "NKG",
+          "name": "禄口国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "西安",
       "city_code": "XIY",
       "airports": [
-        {"code": "XIY", "name": "咸阳国际机场", "is_default": true}
+        {
+          "code": "XIY",
+          "name": "咸阳国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "重庆",
       "city_code": "CKG",
       "airports": [
-        {"code": "CKG", "name": "江北国际机场", "is_default": true}
+        {
+          "code": "CKG",
+          "name": "江北国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "厦门",
       "city_code": "XMN",
       "airports": [
-        {"code": "XMN", "name": "高崎国际机场", "is_default": true}
+        {
+          "code": "XMN",
+          "name": "高崎国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "青岛",
       "city_code": "TAO",
       "airports": [
-        {"code": "TAO", "name": "流亭国际机场", "is_default": true}
+        {
+          "code": "TAO",
+          "name": "流亭国际机场",
+          "is_default": true
+        }
       ]
     },
     {
       "city_name": "大连",
       "city_code": "DLC",
       "airports": [
-        {"code": "DLC", "name": "周水子国际机场", "is_default": true}
+        {
+          "code": "DLC",
+          "name": "周水子国际机场",
+          "is_default": true
+        }
       ]
     }
   ],
   "airlines": [
-    {"code": "MU", "name": "东方航空"},
-    {"code": "CA", "name": "中国国航"},
-    {"code": "CZ", "name": "南方航空"},
-    {"code": "HU", "name": "海南航空"},
-    {"code": "3U", "name": "四川航空"},
-    {"code": "ZH", "name": "深圳航空"},
-    {"code": "FM", "name": "上海航空"},
-    {"code": "MF", "name": "厦门航空"},
-    {"code": "9C", "name": "春秋航空"},
-    {"code": "HO", "name": "吉祥航空"},
-    {"code": "MH", "name": "马来西亚航空"},
-    {"code": "SQ", "name": "新加坡航空"},
-    {"code": "TG", "name": "泰国航空"},
-    {"code": "CX", "name": "国泰航空"},
-    {"code": "KA", "name": "港龙航空"},
-    {"code": "JL", "name": "日本航空"},
-    {"code": "NH", "name": "全日空"},
-    {"code": "KE", "name": "大韩航空"},
-    {"code": "OZ", "name": "韩亚航空"},
-    {"code": "BR", "name": "长荣航空"},
-    {"code": "CI", "name": "中华航空"},
-    {"code": "VN", "name": "越南航空"},
-    {"code": "SL", "name": "泰国狮航"},
-    {"code": "AK", "name": "亚洲航空"},
-    {"code": "TR", "name": "酷航"},
-    {"code": "5J", "name": "宿务太平洋"}
+    {
+      "code": "MU",
+      "name": "东方航空"
+    },
+    {
+      "code": "CA",
+      "name": "中国国航"
+    },
+    {
+      "code": "CZ",
+      "name": "南方航空"
+    },
+    {
+      "code": "HU",
+      "name": "海南航空"
+    },
+    {
+      "code": "3U",
+      "name": "四川航空"
+    },
+    {
+      "code": "ZH",
+      "name": "深圳航空"
+    },
+    {
+      "code": "FM",
+      "name": "上海航空"
+    },
+    {
+      "code": "MF",
+      "name": "厦门航空"
+    },
+    {
+      "code": "9C",
+      "name": "春秋航空"
+    },
+    {
+      "code": "HO",
+      "name": "吉祥航空"
+    },
+    {
+      "code": "MH",
+      "name": "马来西亚航空"
+    },
+    {
+      "code": "SQ",
+      "name": "新加坡航空"
+    },
+    {
+      "code": "TG",
+      "name": "泰国航空"
+    },
+    {
+      "code": "CX",
+      "name": "国泰航空"
+    },
+    {
+      "code": "KA",
+      "name": "港龙航空"
+    },
+    {
+      "code": "JL",
+      "name": "日本航空"
+    },
+    {
+      "code": "NH",
+      "name": "全日空"
+    },
+    {
+      "code": "KE",
+      "name": "大韩航空"
+    },
+    {
+      "code": "OZ",
+      "name": "韩亚航空"
+    },
+    {
+      "code": "BR",
+      "name": "长荣航空"
+    },
+    {
+      "code": "CI",
+      "name": "中华航空"
+    },
+    {
+      "code": "VN",
+      "name": "越南航空"
+    },
+    {
+      "code": "SL",
+      "name": "泰国狮航"
+    },
+    {
+      "code": "AK",
+      "name": "亚洲航空"
+    },
+    {
+      "code": "TR",
+      "name": "酷航"
+    },
+    {
+      "code": "5J",
+      "name": "宿务太平洋"
+    }
   ]
 }

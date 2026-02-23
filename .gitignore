@@ -36,3 +36,12 @@ build/
 # Project specific
 backend/.env
 frontend/.env
+
+backend/app/api/chat.py
+backend/test_*.py
+plan/*.md
+tests/
+list.md
+.gitignore
+frontend/.gitignore
+
