@@ -61,6 +61,7 @@ class FlightInfo(BaseModel):
     """航班信息"""
     id: str = Field(description="航班唯一标识")
     type: str = Field(description="行程类型")
+    travel_type: str = Field(default="OW", description="单程(OW)或往返(RT)")
     segments: list[FlightSegment] = Field(description="航段列表")
     is_transfer: bool = Field(default=False, description="是否中转")
     cabin_class: str = Field(description="舱位等级")

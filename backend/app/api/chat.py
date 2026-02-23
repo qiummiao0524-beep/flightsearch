@@ -1,8 +1,10 @@
 """对话 API 路由"""
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from typing import Optional
 import uuid
 import json
+import asyncio
 
 from app.schemas.chat import ChatRequest, ChatResponse, TripInfo, ClarifyInfo, FlightInfo, DebugInfo
 from app.services.llm_service import llm_service
@@ -10,103 +12,216 @@ from app.services.flight_search import flight_search_service
 from app.services.flight_mock import flight_mock_service
 from app.core.config import settings
 
+def extract_mock_flights(mock_request: dict, travel_type: str = "OW") -> list:
+    """从 Mock 请求中直接提取结构化的航班数据"""
+    segments_map = mock_request.get("segments", {})
+    trip_products = mock_request.get("tripProduct", {}).get("tripProducts", [])
+    
+    flights = []
+    for tp in trip_products:
+        flight_segments = []
+        for fk in tp.get("flightKeys", []):
+            segment_key = str(fk.get("flightKey"))
+            segment = segments_map.get(segment_key)
+            if segment:
+                # 转换时间格式: 202602241200 -> 2026-02-24 12:00:00
+                dep_dt = segment.get("depDateTime", "")
+                dep_time = f"{dep_dt[:4]}-{dep_dt[4:6]}-{dep_dt[6:8]} {dep_dt[8:10]}:{dep_dt[10:12]}:00" if len(dep_dt) >= 12 else dep_dt
+                
+                arr_dt = segment.get("arrDateTime", "")
+                arr_time = f"{arr_dt[:4]}-{arr_dt[4:6]}-{arr_dt[6:8]} {arr_dt[8:10]}:{arr_dt[10:12]}:00" if len(arr_dt) >= 12 else arr_dt
+                
+                flight_segments.append({
+                    "sequence": fk.get("index", 1),
+                    "flight_no": segment.get("operatingFlightNo", ""),
+                    "airline": {
+                        "code": segment.get("marketingAirCode", ""),
+                        "name": segment.get("marketingAirline", "")
+                    },
+                    "departure": {
+                        "code": segment.get("depAirportCode", ""),
+                        "city": segment.get("depCityCode", ""),
+                        "name": segment.get("depAirportCode", ""),
+                        "terminal": segment.get("depAirportTerm", ""),
+                        "time": dep_time
+                    },
+                    "arrival": {
+                        "code": segment.get("arrAirportCode", ""),
+                        "city": segment.get("arrCityCode", ""),
+                        "name": segment.get("arrAirportCode", ""),
+                        "terminal": segment.get("arrAirportTerm", ""),
+                        "time": arr_time
+                    },
+                    "duration": str(segment.get("duration", 0)),
+                    "equip": "",
+                    "is_transfer": fk.get("index", 1) > 1
+                })
+        
+        # 提取价格
+        min_price = tp.get("minPrice", 0)
+        price_details = tp.get("priceDetails", {})
+        adult_price = {}
+        if price_details:
+            first_detail = list(price_details.values())[0] if isinstance(price_details, dict) else {}
+            adult_price = first_detail.get("adultPrice", {})
+        
+        total_price = adult_price.get("totalPrice", min_price)
+        base_price = adult_price.get("price", min_price - 364 if min_price > 364 else min_price)
+        tax = adult_price.get("tax", 364)
+        
+        flights.append({
+            "id": tp.get("flightNoGroup", ""),
+            "type": "INTL_NORMAL",
+            "travel_type": travel_type,
+            "segments": flight_segments,
+            "is_transfer": len(flight_segments) > 1,
+            "cabin_class": "Y",
+            "cabin_num": "9",
+            "price": {
+                "total": str(total_price),
+                "base": str(base_price),
+                "tax": str(tax),
+                "currency": "CNY"
+            },
+            "services": [],
+            "labels": []
+        })
+        
+    return flights
+
 router = APIRouter()
 
 # 内存会话存储 (简单实现)
 sessions = {}
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat")
 async def chat(request: ChatRequest):
-    """对话接口"""
-    session_id = request.session_id or str(uuid.uuid4())
-    
-    # 获取会话历史和当前行程信息
-    session = sessions.get(session_id, {
-        "history": [],
-        "trip_info": {}
-    })
-    
-    # 如果用户选择了澄清选项，更新行程信息
-    if request.selected_option and session.get("last_clarify_field"):
-        field = session["last_clarify_field"]
-        session["trip_info"][field] = request.selected_option
-    
-    # 调用 LLM 解析意图
-    llm_result = await llm_service.parse_intent(
-        request.message,
-        history=session["history"],
-        current_trip_info=session["trip_info"]
-    )
-    
-    if llm_result.get("status") == "error":
-        raise HTTPException(status_code=500, detail=llm_result.get("message"))
-    
-    # 更新会话中的行程信息
-    updated_trip_info = llm_result.get("trip_info", {})
-    if updated_trip_info:
-        session["trip_info"] = llm_service.merge_trip_info(session["trip_info"], updated_trip_info)
-    
-    # 更新历史
-    session["history"].append({"role": "user", "content": request.message})
-    session["history"].append({"role": "assistant", "content": llm_result.get("message", "")})
-    
-    # 准备响应
-    response_type = "clarify" if llm_result.get("status") == "need_clarify" else "result"
-    
-    flights = []
-    is_mocked = False
-    debug_info = None
-    
-    # 如果信息完整，执行搜索
-    if response_type == "result":
-        search_res = await flight_search_service.search(session["trip_info"])
+    """对话接口 (流式进度版)"""
+    async def event_generator():
+        session_id = request.session_id or str(uuid.uuid4())
         
-        if search_res.get("success") and search_res.get("flights"):
-            flights = search_res["flights"]
-        else:
-            # 如果搜索无结果，执行 Mock
-            mock_res = await flight_mock_service.mock_flight(
-                dep_city=session["trip_info"].get("departure_code"),
-                arr_city=session["trip_info"].get("arrival_code"),
-                dep_date=session["trip_info"].get("dep_date"),
-                travel_type=session["trip_info"].get("travel_type", "OW"),
-                return_date=session["trip_info"].get("return_date"),
-                flight_no=session["trip_info"].get("flight_no"),
-                airline_code=session["trip_info"].get("airline_code"),
-                transfer_cities=session["trip_info"].get("transfer_cities")
-            )
-            
-            if mock_res.get("success"):
-                # Mock 成功后再次搜索
-                search_res_retry = await flight_search_service.search(session["trip_info"])
-                if search_res_retry.get("success"):
-                    flights = search_res_retry["flights"]
-                    is_mocked = True
-            
-            # 记录调试信息
-            debug_info = DebugInfo(
-                mock_request=mock_res.get("mock_request"),
-                search_response=search_res.get("raw_response")
-            )
+        # 获取会话历史和当前行程信息
+        session = sessions.get(session_id, {
+            "history": [],
+            "trip_info": {}
+        })
+        
+        # 如果用户选择了澄清选项，更新行程信息
+        if request.selected_option and session.get("last_clarify_field"):
+            field = session["last_clarify_field"]
+            session["trip_info"][field] = request.selected_option
 
-    # 保存会话状态
-    if response_type == "clarify" and llm_result.get("clarify"):
-        session["last_clarify_field"] = llm_result["clarify"].get("field")
-    else:
-        session["last_clarify_field"] = None
+        # 发送进度：正在解析意图
+        yield f"data: {json.dumps({'type': 'progress', 'status': 'UNDERSTANDING', 'message': '正在解析您的航班需求...'})}\n\n"
         
-    sessions[session_id] = session
-    
-    return ChatResponse(
-        session_id=session_id,
-        type=response_type,
-        message=llm_result.get("message", ""),
-        trip_info=TripInfo(**session["trip_info"]) if session["trip_info"] else None,
-        clarify=llm_result.get("clarify"),
-        flights=flights,
-        is_mocked=is_mocked,
-        debug_info=debug_info
-    )
+        # 调用 LLM 解析意图
+        llm_result = await llm_service.parse_intent(
+            request.message,
+            history=session["history"],
+            current_trip_info=session["trip_info"]
+        )
+        
+        if llm_result.get("status") == "error":
+            yield f"data: {json.dumps({'type': 'error', 'message': llm_result.get('message')})}\n\n"
+            return
+        
+        # 发送进度：意图解析完成
+        yield f"data: {json.dumps({'type': 'progress', 'status': 'UNDERSTANDING_DONE', 'message': '需求理解完成，准备检索...'})}\n\n"
+
+        # 更新会话中的行程信息
+        updated_trip_info = llm_result.get("trip_info", {})
+        if updated_trip_info:
+            session["trip_info"] = llm_service.merge_trip_info(session["trip_info"], updated_trip_info)
+        
+        # 更新历史
+        if "history" not in session: session["history"] = []
+        session["history"].append({"role": "user", "content": request.message})
+        session["history"].append({"role": "assistant", "content": llm_result.get("message", "")})
+        
+        # 准备响应
+        response_type = "clarify" if llm_result.get("status") == "need_clarify" else "result"
+        
+        # 发送进度：提取到的需求内容，在此前置下发，让它紧贴着 UNDERSTANDING 节点展示
+        if llm_result.get("message"):
+            yield f"data: {json.dumps({'type': 'progress', 'status': 'UNDERSTANDING_DONE', 'message': llm_result.get('message')})}\n\n"
+        else:
+            yield f"data: {json.dumps({'type': 'progress', 'status': 'UNDERSTANDING_DONE', 'message': '需求理解完成'})}\n\n"
+        
+        # 短暂休眠1秒，让前端有足够的时间停顿在“理解完毕”这一步供用户阅读提取的文字，不要瞬间冲刷掉
+        await asyncio.sleep(1.0)
+        
+        flights = []
+        is_mocked = False
+        debug_info = None
+        
+        # 如果信息完整，执行搜索
+        if response_type == "result":
+            # 发送进度：正在检索
+            yield f"data: {json.dumps({'type': 'progress', 'status': 'SEARCHING', 'message': '正在检索实时航线信息...'})}\n\n"
+            
+            search_res = await flight_search_service.search(session["trip_info"])
+            
+            if search_res.get("success") and search_res.get("flights"):
+                flights = search_res["flights"]
+            else:
+                # 发送进度：正在 Mock
+                yield f"data: {json.dumps({'type': 'progress', 'status': 'MOCKING', 'message': '未找到匹配航线，正在为您安排 Mock 数据...'})}\n\n"
+                
+                dep_code = session["trip_info"].get("departure_code") or session["trip_info"].get("departure_city", "PEK")
+                arr_code = session["trip_info"].get("arrival_code") or session["trip_info"].get("arrival_city", "SHA")
+                
+                # 如果搜索无结果，执行 Mock
+                mock_res = await flight_mock_service.mock_flight(
+                    dep_city=dep_code,
+                    arr_city=arr_code,
+                    dep_date=session["trip_info"].get("dep_date"),
+                    travel_type=session["trip_info"].get("travel_type", "OW"),
+                    return_date=session["trip_info"].get("return_date"),
+                    flight_no=session["trip_info"].get("flight_no"),
+                    airline_code=session["trip_info"].get("airline_code"),
+                    transfer_cities=session["trip_info"].get("transfer_cities"),
+                    passengers=session["trip_info"].get("passengers", [{"type": "ADT", "count": 1}])
+                )
+                
+                if settings.DEBUG:
+                    print(f"[Mock] mock_res success={mock_res.get('success')}, error={mock_res.get('error')}")
+                
+                # 无论二方 Mock 接口返回成功与否，利用已生成的 mock 数据供前端展示
+                mock_request_data = mock_res.get("mock_request", {})
+                if mock_request_data:
+                    flights = extract_mock_flights(mock_request_data, session["trip_info"].get("travel_type", "OW"))
+                    is_mocked = True
+
+                
+                # 记录调试信息
+                debug_info = {
+                    "mock_request": mock_res.get("mock_request"),
+                    "search_response": search_res.get("raw_response")
+                }
+
+        # 保存会话状态
+        if response_type == "clarify" and llm_result.get("clarify"):
+            session["last_clarify_field"] = llm_result["clarify"].get("field")
+        else:
+            session["last_clarify_field"] = None
+            
+        sessions[session_id] = session
+        
+        # 发送最终结果
+        final_payload = {
+            "type": "final",
+            "session_id": session_id,
+            "response_type": response_type,
+            "message": llm_result.get("message", ""),
+            "trip_info": session["trip_info"] if session["trip_info"] else None,
+            "clarify": llm_result.get("clarify"),
+            "flights": flights,
+            "is_mocked": is_mocked,
+            "debug_info": debug_info
+        }
+        yield f"data: {json.dumps(final_payload)}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @router.post("/session/new")
 async def create_session():

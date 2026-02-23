@@ -143,6 +143,8 @@ class FlightSearchService:
         if not resp.get("success") or not resp.get("route"):
             return flights
         
+        req_travel_type = resp.get("data", resp).get("req", {}).get("userCommonReq", {}).get("travelType", "OW")
+        
         route = resp["route"]
         segments_map = route.get("segments", {})
         
@@ -199,6 +201,7 @@ class FlightSearchService:
             flights.append({
                 "id": trip.get("id", ""),
                 "type": trip.get("type", "INTL_NORMAL"),
+                "travel_type": req_travel_type,
                 "segments": flight_segments,
                 "is_transfer": is_transfer,
                 "cabin_class": price_quote.get("cabinClassCode", "Y"),
@@ -221,7 +224,8 @@ class FlightSearchService:
         trip_info: dict,
         user_line_index: int = 1,
         selected_lines: list = None,
-        max_retries: int = 20
+        max_retries: int = 20,
+        trace_id: str = None
     ) -> dict:
         """执行搜索（支持轮询）
         
@@ -235,12 +239,14 @@ class FlightSearchService:
             user_line_index: 当前查询行程索引
             selected_lines: 已选航班
             max_retries: 最大轮询次数，防止无限循环
+            trace_id: 可选的 traceId（Mock 后重试搜索时使用 Mock 的 traceId）
             
         Returns:
             {success: bool, flights: list, raw_response: dict, error: str}
         """
-        # 生成本次搜索的 traceId，轮询过程中保持一致
-        trace_id = f"AI{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}"
+        # 使用传入的 traceId 或生成新的
+        if not trace_id:
+            trace_id = f"AI{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}"
         
         retry_count = 0
         last_resp_data = None
@@ -324,7 +330,7 @@ class FlightSearchService:
                         await asyncio.sleep(sleep_time / 1000.0)
                     else:
                         # 没有 sleepTime 且未完成，等待一个默认时间
-                        await asyncio.sleep(1.0)
+                        await asyncio.sleep(0.5)
                 
                 # 达到最大重试次数，返回最后一次的结果
                 flights = self.transform_response(last_resp_data) if last_resp_data else []

@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import type { FlightInfo, DebugInfo } from '../types'
 
-defineProps<{
+const props = defineProps<{
   flights: FlightInfo[]
   isMocked?: boolean
   debugInfo?: DebugInfo | null
@@ -11,19 +12,68 @@ const emit = defineEmits<{
   showMockData: []
 }>()
 
+// 排序类型：time (时间从早到晚), price (价格从低到高)
+const sortType = ref<'time' | 'price'>('price')
+
+const sortedFlights = computed(() => {
+  const result = [...props.flights]
+  
+  if (sortType.value === 'price') {
+    return result.sort((a, b) => {
+      const priceA = parseFloat(a.price.total.toString())
+      const priceB = parseFloat(b.price.total.toString())
+      return priceA - priceB
+    })
+  } else if (sortType.value === 'time') {
+    return result.sort((a, b) => {
+      // 提取首个航段的出发时间
+      const timeStrA = a.segments[0]?.departure.time || ''
+      const timeStrB = b.segments[0]?.departure.time || ''
+      
+      // 简单的字符串比较即可，因为 ISO 或 YYYY-MM-DD HH:mm 格式字符串比较与时间先后一致
+      return timeStrA.localeCompare(timeStrB)
+    })
+  }
+  
+  return result
+})
+
+
 function formatTime(dateStr?: string): string {
   if (!dateStr) return '--:--'
-  // 处理多种时间格式
-  if (dateStr.includes('T')) {
-    const timePart = dateStr.split('T')[1]
-    return timePart ? timePart.substring(0, 5) : '--:--'
+  
+  let hours = ''
+  let minutes = ''
+
+  // 1. 尝试从字符串中提取时间部分 (格式如: 10:5, 10:05, 10:5:00)
+  // 匹配类似 HH:mm[:ss] 的部分
+  const timeRegex = /(\d{1,2}):(\d{1,2})(?::\d{1,2})?/
+  const match = dateStr.match(timeRegex)
+
+  if (match) {
+    hours = match[1]
+    minutes = match[2]
+  } else if (dateStr.length >= 12 && /^\d+$/.test(dateStr)) {
+    // 2. 处理纯数字紧凑格式: 202602231005
+    hours = dateStr.substring(8, 10)
+    minutes = dateStr.substring(10, 12)
+  } else {
+    // 3. 兜底逻辑：如果无法匹配，尝试查找最后一部分可能的时间
+    const parts = dateStr.split(' ')
+    const lastPart = parts[parts.length - 1]
+    if (lastPart.includes(':')) {
+      const timeParts = lastPart.split(':')
+      hours = timeParts[0]
+      minutes = timeParts[1]
+    } else {
+      return dateStr
+    }
   }
-  if (dateStr.length >= 12) {
-    // yyyyMMddHHmm 格式
-    return `${dateStr.substring(8, 10)}:${dateStr.substring(10, 12)}`
-  }
-  return dateStr
+
+  const pad = (s: string) => s.toString().padStart(2, '0').substring(0, 2)
+  return `${pad(hours)}:${pad(minutes)}`
 }
+
 
 function formatDuration(minutes?: string | number): string {
   if (minutes === undefined || minutes === null) return '--'
@@ -33,6 +83,17 @@ function formatDuration(minutes?: string | number): string {
   const min = m % 60
   return `${h}h${min > 0 ? min + 'm' : ''}`
 }
+
+function getTransferInfo(segments: any[]): string {
+  if (!segments || segments.length <= 1) return ''
+  const stops = segments.length - 1
+  if (stops === 1) {
+    // 1转显示机场三字码 (取第二段的出发机场，即中转点)
+    return `1转 经 ${segments[1]?.departure?.code || ''}`
+  }
+  return `${stops}转`
+}
+
 
 function formatPrice(price: string | number): string {
   const p = typeof price === 'string' ? parseFloat(price) : price
@@ -51,19 +112,32 @@ function formatPrice(price: string | number): string {
     </div>
     
     <div class="list-tabs">
-      <button class="tab active">直飞</button>
-      <button class="tab">起飞时间段</button>
+      <button 
+        class="tab" 
+        :class="{ active: sortType === 'price' }"
+        @click="sortType = 'price'"
+      >
+        价格最低
+      </button>
+      <button 
+        class="tab" 
+        :class="{ active: sortType === 'time' }"
+        @click="sortType = 'time'"
+      >
+        起飞最早
+      </button>
     </div>
     
     <div class="flights">
       <div 
-        v-for="flight in flights" 
+        v-for="flight in sortedFlights" 
         :key="flight.id"
         class="flight-item"
       >
         <div class="flight-main">
           <!-- 航班信息 -->
-          <div class="flight-info">
+          <!-- 单程/多程展示 -->
+          <div class="flight-info" v-if="flight.travel_type !== 'RT'">
             <div class="airline">
               <span class="airline-logo">✈️</span>
               <span class="flight-no">{{ flight.segments[0]?.flight_no }}</span>
@@ -79,13 +153,65 @@ function formatPrice(price: string | number): string {
                 <span class="duration">{{ formatDuration(flight.segments[0]?.duration) }}</span>
                 <div class="duration-line">
                   <span class="line"></span>
-                  <span class="dot" v-if="flight.is_transfer">经停</span>
+                  <span class="transfer-info" v-if="flight.is_transfer">
+                    {{ getTransferInfo(flight.segments) }}
+                  </span>
+                  <span class="line"></span>
                 </div>
               </div>
               
               <div class="time-block">
                 <span class="time">{{ formatTime(flight.segments[flight.segments.length - 1]?.arrival.time) }}</span>
                 <span class="airport">{{ flight.segments[flight.segments.length - 1]?.arrival.code }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 往返程展示 -->
+          <div class="flight-info rt-flight-info" v-else>
+            <!-- 去程 -->
+            <div class="rt-segment">
+              <div class="rt-segment-header">
+                <span class="segment-tag outbound">去程</span>
+                <span class="airline-logo">✈️</span>
+                <span class="flight-no">{{ flight.segments[0]?.flight_no }}</span>
+              </div>
+              <div class="route small-route">
+                <div class="time-block">
+                  <span class="time">{{ formatTime(flight.segments[0]?.departure.time) }}</span>
+                  <span class="airport">{{ flight.segments[0]?.departure.code }}</span>
+                </div>
+                <div class="duration-block">
+                  <span class="duration">{{ formatDuration(flight.segments[0]?.duration) }}</span>
+                  <div class="duration-line"><span class="line"></span><span class="line"></span></div>
+                </div>
+                <div class="time-block">
+                  <span class="time">{{ formatTime(flight.segments[0]?.arrival.time) }}</span>
+                  <span class="airport">{{ flight.segments[0]?.arrival.code }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 返程 -->
+            <div class="rt-segment">
+              <div class="rt-segment-header">
+                <span class="segment-tag inbound">返程</span>
+                <span class="airline-logo">✈️</span>
+                <span class="flight-no">{{ flight.segments[1]?.flight_no }}</span>
+              </div>
+              <div class="route small-route">
+                <div class="time-block">
+                  <span class="time">{{ formatTime(flight.segments[1]?.departure.time) }}</span>
+                  <span class="airport">{{ flight.segments[1]?.departure.code }}</span>
+                </div>
+                <div class="duration-block">
+                  <span class="duration">{{ formatDuration(flight.segments[1]?.duration) }}</span>
+                  <div class="duration-line"><span class="line"></span><span class="line"></span></div>
+                </div>
+                <div class="time-block">
+                  <span class="time">{{ formatTime(flight.segments[1]?.arrival.time) }}</span>
+                  <span class="airport">{{ flight.segments[1]?.arrival.code }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -186,8 +312,6 @@ function formatPrice(price: string | number): string {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 400px;
-  overflow-y: auto;
 }
 
 .flight-item {
@@ -278,11 +402,14 @@ function formatPrice(price: string | number): string {
   background: #ddd;
 }
 
-.dot {
+.transfer-info {
   font-size: 10px;
   color: #ff9800;
   padding: 0 4px;
+  white-space: nowrap;
+  font-weight: 500;
 }
+
 
 .price-block {
   display: flex;
@@ -332,5 +459,47 @@ function formatPrice(price: string | number): string {
 
 .empty-text {
   font-size: 14px;
+}
+
+.rt-flight-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rt-segment {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #f0f0f0;
+}
+
+.rt-segment-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.segment-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 500;
+}
+
+.segment-tag.outbound {
+  background-color: #4daaa7;
+}
+
+.segment-tag.inbound {
+  background-color: #e58b68;
+}
+
+.small-route .time {
+  font-size: 16px;
 }
 </style>

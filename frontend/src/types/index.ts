@@ -64,6 +64,7 @@ export interface FlightSegment {
 export interface FlightInfo {
   id: string
   type: string
+  travel_type: 'OW' | 'RT'
   segments: FlightSegment[]
   is_transfer: boolean
   cabin_class: string
@@ -82,12 +83,13 @@ export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
-  type?: 'clarify' | 'result' | 'searching' | 'mocking' | 'error'
+  type?: 'clarify' | 'result' | 'searching' | 'mocking' | 'error' | 'progress'
   trip_info?: TripInfo
   clarify?: ClarifyInfo
   flights?: FlightInfo[]
   is_mocked?: boolean
   timestamp: Date
+  progressStatus?: string
 }
 
 export interface DebugInfo {
