@@ -22,7 +22,8 @@ class FlightMockService:
         flight_no: str = None,
         airline_code: str = None,
         dep_time: str = "12:00",
-        price: int = 1000
+        price: int = 1000,
+        passengers: list = None
     ) -> dict:
         """构建 Mock 接口请求
         
@@ -52,12 +53,12 @@ class FlightMockService:
         if travel_type == "OW":
             return self._build_ow_mock_request(
                 dep_city, arr_city, dep_date, flight_no, airline,
-                dep_time, price, trace_id
+                dep_time, price, trace_id, passengers
             )
         else:  # RT
             return self._build_rt_mock_request(
                 dep_city, arr_city, dep_date, return_date,
-                flight_no, airline, dep_time, price, trace_id
+                flight_no, airline, dep_time, price, trace_id, passengers
             )
     
     def _build_ow_mock_request(
@@ -69,9 +70,13 @@ class FlightMockService:
         airline: str,
         dep_time: str,
         price: int,
-        trace_id: str
+        trace_id: str,
+        passengers: list = None
     ) -> dict:
         """构建单程 Mock 请求"""
+        passengers = passengers or [{"type": "ADT", "count": 1}]
+        total_p_count = sum(p.get("count", 0) for p in passengers)
+
         # 生成 segment key
         segment_key = str(hash(f"{flight_no}_{dep_date}_{dep_time}") % (10**10))
         
@@ -151,11 +156,9 @@ class FlightMockService:
                 "userCommonReq": {
                     "travelType": "OW",
                     "bookingClass": ["Y", "S", "C", "F"],
-                    "passengerCount": 1,
+                    "passengerCount": total_p_count,
                     "reqPassengers": [
-                        {"passengerType": "ADT", "passengerCount": 1},
-                        {"passengerType": "CHD", "passengerCount": 0},
-                        {"passengerType": "INF", "passengerCount": 0}
+                        {"passengerType": p["type"], "passengerCount": p["count"]} for p in passengers
                     ],
                     "reqUserLines": [{
                         "index": 1,
@@ -198,9 +201,12 @@ class FlightMockService:
         airline: str,
         dep_time: str,
         price: int,
-        trace_id: str
+        trace_id: str,
+        passengers: list = None
     ) -> dict:
         """构建往返 Mock 请求"""
+        passengers = passengers or [{"type": "ADT", "count": 1}]
+        total_p_count = sum(p.get("count", 0) for p in passengers)
         dep_date_fmt = dep_date.replace("-", "")
         return_date_fmt = return_date.replace("-", "") if return_date else dep_date_fmt
         
@@ -325,11 +331,9 @@ class FlightMockService:
                 "userCommonReq": {
                     "travelType": "RT",
                     "bookingClass": ["Y", "S", "C", "F"],
-                    "passengerCount": 1,
+                    "passengerCount": total_p_count,
                     "reqPassengers": [
-                        {"passengerType": "ADT", "passengerCount": 1},
-                        {"passengerType": "CHD", "passengerCount": 0},
-                        {"passengerType": "INF", "passengerCount": 0}
+                        {"passengerType": p["type"], "passengerCount": p["count"]} for p in passengers
                     ],
                     "reqUserLines": [
                         {"index": 1, "depCityCode": dep_city, "arrCityCode": arr_city, "depDate": f"{dep_date} 00:00:00.000"},
@@ -510,11 +514,9 @@ class FlightMockService:
                 "userCommonReq": {
                     "travelType": "OW",
                     "bookingClass": ["Y", "S", "C", "F"],
-                    "passengerCount": 1,
+                    "passengerCount": total_p_count,
                     "reqPassengers": [
-                        {"passengerType": "ADT", "passengerCount": 1},
-                        {"passengerType": "CHD", "passengerCount": 0},
-                        {"passengerType": "INF", "passengerCount": 0}
+                        {"passengerType": p["type"], "passengerCount": p["count"]} for p in passengers
                     ],
                     "reqUserLines": [{
                         "index": 1,
@@ -575,7 +577,8 @@ class FlightMockService:
         return_date: str = None,
         flight_no: str = None,
         airline_code: str = None,
-        transfer_cities: list[str] = None
+        transfer_cities: list[str] = None,
+        passengers: list = None
     ) -> dict:
         """调用 Mock 接口创建航班数据
         
@@ -615,7 +618,8 @@ class FlightMockService:
                 transfer_cities=transfer_cities,
                 dep_time="12:00",
                 price=1000,
-                trace_id=trace_id
+                trace_id=trace_id,
+                passengers=passengers
             )
         else:
             # 普通航班 Mock
@@ -626,7 +630,8 @@ class FlightMockService:
                 travel_type=travel_type,
                 return_date=return_date,
                 flight_no=flight_no,
-                airline_code=airline_code
+                airline_code=airline_code,
+                passengers=passengers
             )
         
         # 包装成接口需要的格式

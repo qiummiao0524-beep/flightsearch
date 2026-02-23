@@ -112,14 +112,36 @@ body {
 #app {
   min-height: 100vh;
 }
+
+/* 统一滚动条样式优化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.7);
+}
 </style>
 
 <style scoped>
 .app {
-  min-height: 100vh;
+  height: 100vh;
   padding: 20px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 背景装饰 */
@@ -188,6 +210,7 @@ body {
   align-items: center;
   padding: 10px 20px;
   margin-bottom: 20px;
+  flex-shrink: 0;
   position: relative;
   z-index: 1;
 }
@@ -231,17 +254,27 @@ body {
 /* 主内容 */
 .main {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: minmax(0, 1fr) 480px;
   gap: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  height: calc(100vh - 120px);
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   position: relative;
   z-index: 1;
 }
 
 .chat-section {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.chat-section > * {
+  flex: 1;
+  min-height: 0;
 }
 
 .info-section {
@@ -250,6 +283,8 @@ body {
   gap: 16px;
   overflow-y: auto;
   padding-right: 4px;
+  min-height: 0;
+  height: 100%;
 }
 
 /* 空状态 */

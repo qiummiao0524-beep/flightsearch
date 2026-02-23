@@ -206,12 +206,12 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "transfer_cities": null
   }},
   "clarify": null,
-  "message": "好的，正在为您搜索明天上海到香港的航班（不限机场）..."
+  "message": "提取出行信息：明天上海至香港（不限机场）"
 }}
 ```
 
-### 示例4：信息完整
-用户: 2月15号从上海浦东到香港
+### 示例4：信息完整及多乘客类型
+用户: 2月15号从上海浦东到香港，2个大人1个小孩1个婴儿
 输出:
 ```json
 {{
@@ -224,7 +224,7 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "arrival_code": "HKG",
     "dep_date": "2026-02-15",
     "return_date": null,
-    "passengers": [{{"type": "ADT", "count": 1}}],
+    "passengers": [{{"type": "ADT", "count": 2}}, {{"type": "CHD", "count": 1}}, {{"type": "INF", "count": 1}}],
     "cabin_class": "Y",
     "cabin_name": "经济舱",
     "airline_code": null,
@@ -232,7 +232,7 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "transfer_cities": null
   }},
   "clarify": null,
-  "message": "好的，正在为您搜索2月15日上海浦东到香港的航班..."
+  "message": "提取出行信息：2月15日上海浦东至香港，2成人1儿童1婴儿"
 }}
 ```
 
@@ -258,7 +258,37 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "transfer_cities": ["BKK"]
   }},
   "clarify": null,
-  "message": "好的，正在为您搜索MU5001/MU5002 中转航班，上海到新加坡经曼谷中转..."
+  "message": "提取出行信息：明天 MU5001/MU5002 中转航班，上海至新加坡（经曼谷中转）"
+}}
+```
+
+### 示例6：往返航班
+用户: 查一下下周三从北京去上海然后再回到北京的往返航班
+输出:
+```json
+{{
+  "status": "complete",
+  "trip_info": {{
+    "travel_type": "RT",
+    "departure_city": "北京",
+    "departure_code": "BJS",
+    "arrival_city": "上海",
+    "arrival_code": "SHA",
+    "dep_date": "{(datetime.now() + timedelta(days=7 - datetime.now().weekday() + 2 if datetime.now().weekday() <= 2 else 14 - datetime.now().weekday() + 2)).strftime('%Y-%m-%d')}",
+    "return_date": null,
+    "passengers": [{{"type": "ADT", "count": 1}}],
+    "cabin_class": "Y",
+    "cabin_name": "经济舱",
+    "airline_code": null,
+    "flight_no": null,
+    "transfer_cities": null
+  }},
+  "clarify": {{
+    "field": "return_date",
+    "question": "请问您想哪天返回北京？",
+    "options": []
+  }},
+  "message": "提取出行信息：下周三北京至上海的往返航班，请问您想哪天返回？"
 }}
 ```
 """
