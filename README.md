@@ -39,6 +39,7 @@ flightsearch/
 - Poetry (依赖管理)
 
 ### 前端
+- Node.js 20.19+ 或 22.12+ (Vite 运行依赖)
 - Vue 3 + TypeScript
 - Vite
 - Pinia (状态管理)
@@ -58,7 +59,12 @@ poetry install
 # 配置环境变量（编辑 .env 文件）
 # 启动后端服务
 poetry run python main.py
+
+cd /Users/qiumiaomiao/Documents/AI/flightsearch/backend
+poetry run python main.py
+
 ```
+
 
 后端服务运行在 http://localhost:8000
 
@@ -72,7 +78,14 @@ npm install
 
 # 启动开发服务器
 npm run dev
+
+# 1. 刷新一下环境变量配置（只需执行一次）
+source ~/.zshrc
+# 2. 然后启动前端即可（不会再报错了）
+cd /Users/qiumiaomiao/Documents/AI/flightsearch/frontend
+npm run dev
 ```
+
 
 前端服务运行在 http://localhost:5173
 

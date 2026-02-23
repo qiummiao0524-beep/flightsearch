@@ -6,6 +6,39 @@ const chatStore = useChatStore()
 const inputText = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 
+// 进度步骤定义（幽默风格 + Mock 节点）
+const progressSteps = [
+  { id: 'UNDERSTANDING', label: '🧠 正在读懂你的心思...' },
+  { id: 'SEARCHING', label: '🔍 全球航线大搜罗中...' },
+  { id: 'MOCKING', label: '⌛️ 未查询到航线正在Mock，请耐心等待' },
+  { id: 'DONE', label: '🎉 搞定！结果已送达' }
+]
+
+// 判断步骤状态（根据消息自身的 progressStatus）
+const getStepStatus = (stepId: string, msgProgress: string) => {
+  if (!msgProgress) return 'pending'
+  if (msgProgress === 'DONE') return 'completed'
+  if (msgProgress === stepId) return 'active'
+
+  const currentIndex = progressSteps.findIndex(s => s.id === msgProgress)
+  const stepIndex = progressSteps.findIndex(s => s.id === stepId)
+
+  // 特殊处理 UNDERSTANDING_DONE
+  if (msgProgress === 'UNDERSTANDING_DONE' && stepId === 'UNDERSTANDING') return 'completed'
+  if (msgProgress === 'UNDERSTANDING_DONE') {
+    return stepIndex <= 0 ? 'completed' : 'pending'
+  }
+
+  if (currentIndex > stepIndex) return 'completed'
+  return 'pending'
+}
+
+// 是否显示 MOCKING 步骤（只有实际触发了 Mock 才显示）
+const shouldShowMocking = (msg: any) => {
+  const p = msg.progressStatus || ''
+  return p === 'MOCKING' || (p === 'DONE' && msg.is_mocked)
+}
+
 // 发送消息
 async function handleSend() {
   const text = inputText.value.trim()
@@ -25,13 +58,14 @@ function handleKeydown(e: KeyboardEvent) {
 
 // 自动滚动到底部
 watch(
-  () => chatStore.messages.length,
+  () => [chatStore.messages.length, chatStore.currentProgress],
   async () => {
     await nextTick()
     if (messagesContainer.value) {
       messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
     }
-  }
+  },
+  { deep: true }
 )
 </script>
 
@@ -64,20 +98,40 @@ watch(
             {{ msg.role === 'user' ? '👤' : '🤖' }}
           </div>
           <div class="bubble">
-            {{ msg.content }}
-          </div>
-        </div>
-      </div>
-      
-      <!-- 加载状态 -->
-      <div v-if="chatStore.isLoading" class="message assistant loading">
-        <div class="message-content">
-          <div class="avatar">🤖</div>
-          <div class="bubble">
-            <div class="typing">
-              <span></span>
-              <span></span>
-              <span></span>
+            <!-- 进度步骤（有 progressStatus 的消息才显示） -->
+            <div v-if="msg.progressStatus" class="progress-list">
+              <template v-for="step in progressSteps" :key="step.id">
+                <div
+                  v-show="(step.id !== 'MOCKING' || shouldShowMocking(msg)) && getStepStatus(step.id, msg.progressStatus || '') !== 'pending'"
+                  :class="['progress-item', getStepStatus(step.id, msg.progressStatus || '')]"
+                >
+                  <div class="step-icon">
+                    <span v-if="getStepStatus(step.id, msg.progressStatus || '') === 'completed'" class="check-icon">✓</span>
+                    <span v-else-if="getStepStatus(step.id, msg.progressStatus || '') === 'active'" class="spinner"></span>
+                    <span v-else class="dot-icon"></span>
+                  </div>
+                  <span class="step-label">{{ step.label }}</span>
+                </div>
+                
+                <!-- 嵌入：理解节点下方的说明文字 -->
+                <!-- 如果已经走完了 UNDERSTANDING（此时 content 已经被前置下发），就将其展示 -->
+                <div 
+                  v-if="step.id === 'UNDERSTANDING' && msg.content && msg.type !== 'error' && msg.type !== 'clarify'" 
+                  class="step-sub-text"
+                >
+                  └ {{ msg.content }}
+                </div>
+              </template>
+            </div>
+
+            <!-- 进度中的小动画 -->
+            <div v-if="msg.progressStatus && msg.progressStatus !== 'DONE' && msg.progressStatus !== 'ERROR' && !msg.content" class="typing-small">
+              <span></span><span></span><span></span>
+            </div>
+
+            <!-- 回复文本（如果它是个提问，或者报错信息等，继续显示在最后面） -->
+            <div v-if="msg.content && msg.type !== 'result' && msg.type !== 'searching'" :class="{ 'reply-text': !!msg.progressStatus }">
+              {{ msg.content }}
             </div>
           </div>
         </div>
@@ -204,38 +258,124 @@ watch(
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* 打字动画 */
-.typing {
+/* 进度列表样式 */
+.progress-list {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 10px;
   padding: 4px 0;
 }
 
-.typing span {
-  width: 8px;
-  height: 8px;
+.progress-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #bbb;
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+.progress-item.active {
+  color: #667eea;
+  font-weight: 500;
+  transform: translateX(4px);
+}
+
+.progress-item.completed {
+  color: #764ba2;
+}
+
+.step-sub-text {
+  padding-left: 28px;
+  font-size: 12px;
+  color: #888;
+  margin-top: -6px;
+  margin-bottom: 4px;
+}
+
+.step-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.check-icon {
+  font-size: 13px;
+  font-weight: 700;
+  color: #764ba2;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #ccc;
-  animation: typing 1.4s infinite ease-in-out both;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.typing span:nth-child(1) {
-  animation-delay: -0.32s;
+.dot-icon {
+  width: 6px;
+  height: 6px;
+  background: #ddd;
+  border-radius: 50%;
 }
 
-.typing span:nth-child(2) {
-  animation-delay: -0.16s;
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #667eea;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.typing-small {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+  padding-left: 28px;
+}
+
+.typing-small span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #667eea;
+  animation: typing 1s infinite ease-in-out both;
+}
+
+.typing-small span:nth-child(2) { animation-delay: 0.2s; }
+.typing-small span:nth-child(3) { animation-delay: 0.4s; }
+
+/* 回复文本（进度完成后出现在节点下方） */
+.reply-text {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(102, 126, 234, 0.1);
+  animation: fadeInUp 0.4s ease;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 @keyframes typing {
-  0%, 80%, 100% {
-    transform: scale(0.6);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .input-area {
