@@ -379,7 +379,8 @@ class FlightMockService:
         transfer_cities: list[str],
         dep_time: str,
         price: int,
-        trace_id: str
+        trace_id: str,
+        passengers: list = None
     ) -> dict:
         """构建中转单程 Mock 请求
         
@@ -392,7 +393,11 @@ class FlightMockService:
             dep_time: 出发时间
             price: 票价
             trace_id: 追踪ID
+            passengers: 乘客信息列表
         """
+        passengers = passengers or [{"type": "ADT", "count": 1}]
+        total_p_count = sum(p.get("count", 0) for p in passengers)
+        
         dep_date_fmt = dep_date.replace("-", "")
         
         # 构建城市列表：出发 -> 中转1 -> 中转2 -> ... -> 到达
@@ -549,6 +554,232 @@ class FlightMockService:
             "checkFlightNoGroup": ""
         }
     
+    def _build_transfer_rt_mock_request(
+        self,
+        dep_city: str,
+        arr_city: str,
+        dep_date: str,
+        return_date: str,
+        flight_nos: list[str],
+        transfer_cities: list[str],
+        dep_time: str,
+        price: int,
+        trace_id: str,
+        passengers: list = None
+    ) -> dict:
+        """构建中转往返 Mock 请求"""
+        passengers = passengers or [{"type": "ADT", "count": 1}]
+        total_p_count = sum(p.get("count", 0) for p in passengers)
+        
+        dep_date_fmt = dep_date.replace("-", "")
+        return_date_fmt = return_date.replace("-", "") if return_date else dep_date_fmt
+        
+        # 构建去程城市列表：出发 -> 中转1 -> ... -> 到达
+        outbound_cities = [dep_city] + transfer_cities + [arr_city]
+        num_outbound_segments = len(outbound_cities) - 1
+        
+        # 构建返程城市列表：到达 -> 中转N -> ... -> 出发
+        inbound_cities = [arr_city] + list(reversed(transfer_cities)) + [dep_city]
+        num_inbound_segments = len(inbound_cities) - 1
+        
+        total_segments = num_outbound_segments + num_inbound_segments
+        
+        # 补齐航班号
+        if len(flight_nos) < total_segments:
+            airline = flight_nos[0][:2] if flight_nos else "MU"
+            for i in range(len(flight_nos), total_segments):
+                flight_nos.append(f"{airline}{random.randint(1000, 9999)}")
+        
+        segments = {}
+        flight_key_list = []
+        outbound_flight_group = []
+        inbound_flight_group = []
+        
+        try:
+            out_base_timestamp = int(datetime.strptime(f"{dep_date} {dep_time}", "%Y-%m-%d %H:%M").timestamp() * 1000)
+            in_base_timestamp = int(datetime.strptime(f"{return_date} {dep_time}", "%Y-%m-%d %H:%M").timestamp() * 1000)
+        except:
+            out_base_timestamp = int(datetime.now().timestamp() * 1000)
+            in_base_timestamp = out_base_timestamp + 86400000
+
+        FLIGHT_DURATION_MS = 2 * 60 * 60 * 1000
+        TRANSFER_TIME_MS = 90 * 60 * 1000
+        
+        segment_index = 1
+        
+        # 生成去程
+        for i in range(num_outbound_segments):
+            from_city = outbound_cities[i]
+            to_city = outbound_cities[i + 1]
+            flight_no = flight_nos[i]
+            airline = flight_no[:2] if len(flight_no) >= 2 else "MU"
+            
+            seg_dep_timestamp = out_base_timestamp + i * (FLIGHT_DURATION_MS + TRANSFER_TIME_MS)
+            seg_arr_timestamp = seg_dep_timestamp + FLIGHT_DURATION_MS
+            seg_dep_dt = datetime.fromtimestamp(seg_dep_timestamp / 1000)
+            seg_arr_dt = datetime.fromtimestamp(seg_arr_timestamp / 1000)
+            
+            segment_key = str(hash(f"OUT_{flight_no}_{from_city}_{to_city}_{i}") % (10**10))
+            
+            segment = {
+                "aircraft": "A320",
+                "arrAirportCode": to_city,
+                "arrAirportTerm": "T2",
+                "arrCityCode": to_city,
+                "arrDateTime": seg_arr_dt.strftime("%Y%m%d%H%M"),
+                "arrTime": seg_arr_timestamp,
+                "depAirportCode": from_city,
+                "depAirportTerm": "T2",
+                "depCityCode": from_city,
+                "depDateTime": seg_dep_dt.strftime("%Y%m%d%H%M"),
+                "depTime": seg_dep_timestamp,
+                "duration": 120,
+                "flightShare": False,
+                "key": segment_key,
+                "marketingAirCode": airline,
+                "marketingAirline": airline,
+                "marketingFlightNo": flight_no,
+                "mileage": 0,
+                "operatingAirline": airline,
+                "operatingFlightNo": flight_no,
+                "stopTime": 0 if i == 0 else int(TRANSFER_TIME_MS / 60000),
+                "stops": []
+            }
+            segments[segment_key] = segment
+            flight_key_list.append({
+                "flightKey": segment_key,
+                "index": segment_index,
+                "mainSegment": i == 0,
+                "airLineIndex": 1,
+                "mainAirline": airline if i == 0 else ""
+            })
+            outbound_flight_group.append(f"{flight_no}_{dep_date_fmt}")
+            segment_index += 1
+            
+        # 生成返程
+        for i in range(num_inbound_segments):
+            from_city = inbound_cities[i]
+            to_city = inbound_cities[i + 1]
+            flight_no = flight_nos[num_outbound_segments + i]
+            airline = flight_no[:2] if len(flight_no) >= 2 else "MU"
+            
+            seg_dep_timestamp = in_base_timestamp + i * (FLIGHT_DURATION_MS + TRANSFER_TIME_MS)
+            seg_arr_timestamp = seg_dep_timestamp + FLIGHT_DURATION_MS
+            seg_dep_dt = datetime.fromtimestamp(seg_dep_timestamp / 1000)
+            seg_arr_dt = datetime.fromtimestamp(seg_arr_timestamp / 1000)
+            
+            segment_key = str(hash(f"IN_{flight_no}_{from_city}_{to_city}_{i}") % (10**10))
+            
+            segment = {
+                "aircraft": "A320",
+                "arrAirportCode": to_city,
+                "arrAirportTerm": "T2",
+                "arrCityCode": to_city,
+                "arrDateTime": seg_arr_dt.strftime("%Y%m%d%H%M"),
+                "arrTime": seg_arr_timestamp,
+                "depAirportCode": from_city,
+                "depAirportTerm": "T2",
+                "depCityCode": from_city,
+                "depDateTime": seg_dep_dt.strftime("%Y%m%d%H%M"),
+                "depTime": seg_dep_timestamp,
+                "duration": 120,
+                "flightShare": False,
+                "key": segment_key,
+                "marketingAirCode": airline,
+                "marketingAirline": airline,
+                "marketingFlightNo": flight_no,
+                "mileage": 0,
+                "operatingAirline": airline,
+                "operatingFlightNo": flight_no,
+                "stopTime": 0 if i == 0 else int(TRANSFER_TIME_MS / 60000),
+                "stops": []
+            }
+            segments[segment_key] = segment
+            flight_key_list.append({
+                "flightKey": segment_key,
+                "index": segment_index,
+                "mainSegment": i == 0,
+                "airLineIndex": 2,
+                "mainAirline": airline if i == 0 else ""
+            })
+            inbound_flight_group.append(f"{flight_no}_{return_date_fmt}")
+            segment_index += 1
+
+        total_price = price * 2 + 100
+        price_detail_key = str(hash(f"{'_'.join(flight_nos)}_{price}") % (10**10))
+        price_detail = {
+            "abnormal": False,
+            "adultPrice": {
+                "QValue": 0,
+                "bidMaxPrice": price,
+                "bidMinPrice": price,
+                "enginePrice": price,
+                "gdsPrice": {"QValue": 0.0, "currency": "CNY", "netPrice": float(price), "netTax": 50.0},
+                "merchantPrice": price,
+                "netPrice": price,
+                "passengerType": "ADT",
+                "price": price,
+                "tax": 50,
+                "totalPrice": price + 50
+            },
+            "allPrice": total_price,
+            "cabinClass": "Y",
+            "cabinNum": "9",
+            "flightKeys": flight_key_list,
+            "id": price_detail_key,
+            "merchantId": 1047258,
+            "resourceType": "TCPL",
+            "gds": "TCPL"
+        }
+        
+        filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}-{return_date_fmt}"
+        flight_no_group = "_".join(outbound_flight_group) + "|" + "_".join(inbound_flight_group)
+        
+        return {
+            "filter2": filter2,
+            "flatType": "TC",
+            "resourceId": "EBOOKING-PRICING",
+            "resourceType": "TCPL",
+            "traceId": trace_id,
+            "searchScene": "NORMAL",
+            "searchParamRequest": {
+                "limitReq": {"maxAge": 0, "minAge": 0, "nations": []},
+                "userCommonReq": {
+                    "travelType": "RT",
+                    "bookingClass": ["Y", "S", "C", "F"],
+                    "passengerCount": total_p_count,
+                    "reqPassengers": [
+                        {"passengerType": p["type"], "passengerCount": p["count"]} for p in passengers
+                    ],
+                    "reqUserLines": [
+                        {"index": 1, "depCityCode": dep_city, "arrCityCode": arr_city, "depDate": f"{dep_date} 00:00:00.000"},
+                        {"index": 2, "depCityCode": arr_city, "arrCityCode": dep_city, "depDate": f"{return_date} 00:00:00.000"}
+                    ]
+                }
+            },
+            "segments": segments,
+            "tripProduct": {
+                "traceId": trace_id,
+                "createTime": int(datetime.now().timestamp() * 1000),
+                "tripProducts": [{
+                    "flightKeys": flight_key_list,
+                    "flightNoGroup": flight_no_group,
+                    "minPrice": total_price,
+                    "nearTakeoff": False,
+                    "priceDetails": {price_detail_key: price_detail},
+                    "ext": {"PGS_FLOW_SWITCH": "1"}
+                }]
+            },
+            "ext": {
+                "searchType": "NORMAL",
+                "FILTER2": filter2,
+                "flatType": "TC"
+            },
+            "boardFlightNoGroup": "",
+            "boardProductCode": "",
+            "checkFlightNoGroup": ""
+        }
+
     def _wrap_request(self, mock_data: dict) -> dict:
         """将 Mock 数据包装成接口需要的格式
         
@@ -597,30 +828,53 @@ class FlightMockService:
         """
         trace_id = f"MOCK{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}"
         
-        # 检查是否为中转航班（航班号包含 /）
-        is_transfer = flight_no and "/" in flight_no
+        # 检查是否为中转航班（航班号包含 / 或是指定了中转城市）
+        is_transfer = (flight_no and "/" in flight_no) or (transfer_cities and len(transfer_cities) > 0)
         
-        if is_transfer and travel_type == "OW":
+        if is_transfer:
             # 中转航班 Mock
-            flight_nos = [fn.strip() for fn in flight_no.split("/")]
-            
+            if flight_no and "/" in flight_no:
+                flight_nos = [fn.strip() for fn in flight_no.split("/")]
+            else:
+                num_segments = (len(transfer_cities) + 1) * (2 if travel_type == "RT" else 1)
+                airline = airline_code or "MU"
+                flight_nos = [f"{airline}{1000 + i}" for i in range(num_segments)]
+                
             # 确保 transfer_cities 存在且数量正确
             if not transfer_cities:
-                # 如果没有指定中转城市，生成占位符
-                num_transfers = len(flight_nos) - 1
+                if travel_type == "RT":
+                    # 往返如果没给城市，假设单程的转机数为 (总段数/2)-1 或 至少1
+                    num_transfers = max(1, len(flight_nos) // 2 - 1 if len(flight_nos) > 2 else len(flight_nos) - 1)
+                else:
+                    num_transfers = len(flight_nos) - 1
+                    
                 transfer_cities = [f"TR{i+1}" for i in range(num_transfers)]
             
-            mock_data = self._build_transfer_ow_mock_request(
-                dep_city=dep_city,
-                arr_city=arr_city,
-                dep_date=dep_date,
-                flight_nos=flight_nos,
-                transfer_cities=transfer_cities,
-                dep_time="12:00",
-                price=1000,
-                trace_id=trace_id,
-                passengers=passengers
-            )
+            if travel_type == "OW":
+                mock_data = self._build_transfer_ow_mock_request(
+                    dep_city=dep_city,
+                    arr_city=arr_city,
+                    dep_date=dep_date,
+                    flight_nos=flight_nos,
+                    transfer_cities=transfer_cities,
+                    dep_time="12:00",
+                    price=1000,
+                    trace_id=trace_id,
+                    passengers=passengers
+                )
+            else:
+                mock_data = self._build_transfer_rt_mock_request(
+                    dep_city=dep_city,
+                    arr_city=arr_city,
+                    dep_date=dep_date,
+                    return_date=return_date,
+                    flight_nos=flight_nos,
+                    transfer_cities=transfer_cities,
+                    dep_time="12:00",
+                    price=1000,
+                    trace_id=trace_id,
+                    passengers=passengers
+                )
         else:
             # 普通航班 Mock
             mock_data = self.build_mock_request(

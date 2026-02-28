@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import { useChatStore } from '../stores/chat'
+import ClarifyCard from './ClarifyCard.vue'
 
 const chatStore = useChatStore()
 const inputText = ref('')
@@ -129,10 +130,17 @@ watch(
               <span></span><span></span><span></span>
             </div>
 
-            <!-- 回复文本（如果它是个提问，或者报错信息等，继续显示在最后面） -->
             <div v-if="msg.content && msg.type !== 'result' && msg.type !== 'searching'" :class="{ 'reply-text': !!msg.progressStatus }">
               {{ msg.content }}
             </div>
+
+            <!-- 内嵌澄清卡片（如果当前消息是澄清类型） -->
+            <ClarifyCard
+              v-if="msg.type === 'clarify' && msg.clarify"
+              :clarify="msg.clarify"
+              :disabled="msg.id !== chatStore.messages[chatStore.messages.length - 1].id"
+              @select="chatStore.selectOption"
+            />
           </div>
         </div>
       </div>
