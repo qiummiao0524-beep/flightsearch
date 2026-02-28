@@ -156,16 +156,22 @@ async def chat(request: ChatRequest):
         
         # 如果信息完整，执行搜索
         if response_type == "result":
-            # 发送进度：正在检索
-            yield f"data: {json.dumps({'type': 'progress', 'status': 'SEARCHING', 'message': '正在检索实时航线信息...'})}\n\n"
+            # 检查是否强制 mock（如果用户指定了航班号或中转城市，大概率是为了造特定数据）
+            force_mock = bool(session["trip_info"].get("flight_no") or session["trip_info"].get("transfer_cities"))
             
-            search_res = await flight_search_service.search(session["trip_info"])
+            if not force_mock:
+                # 发送进度：正在检索
+                yield f"data: {json.dumps({'type': 'progress', 'status': 'SEARCHING', 'message': '正在检索实时航线信息...'})}\n\n"
+                search_res = await flight_search_service.search(session["trip_info"])
+            else:
+                search_res = {"success": False, "flights": []}
             
             if search_res.get("success") and search_res.get("flights"):
                 flights = search_res["flights"]
             else:
                 # 发送进度：正在 Mock
-                yield f"data: {json.dumps({'type': 'progress', 'status': 'MOCKING', 'message': '未找到匹配航线，正在为您安排 Mock 数据...'})}\n\n"
+                msg = '未找到匹配航线，正在为您安排 Mock 数据...' if not force_mock else '正在为您生成符合条件的 Mock 数据...'
+                yield f"data: {json.dumps({'type': 'progress', 'status': 'MOCKING', 'message': msg})}\n\n"
                 
                 dep_code = session["trip_info"].get("departure_code") or session["trip_info"].get("departure_city", "PEK")
                 arr_code = session["trip_info"].get("arrival_code") or session["trip_info"].get("arrival_city", "SHA")

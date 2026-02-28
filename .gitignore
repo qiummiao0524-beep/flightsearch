@@ -40,8 +40,13 @@ frontend/.env
 plan/
 backend/app/api/chat.py
 backend/test_*.py
+backend/app/data/
+backend/app.log
 plan/*.md
 tests/
 list.md
 .gitignore
 frontend/.gitignore
+orchestrator/
+AGENTS.md
+CLAUDE.md
