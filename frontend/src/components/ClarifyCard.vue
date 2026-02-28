@@ -3,6 +3,7 @@ import type { ClarifyInfo } from '../types'
 
 const props = defineProps<{
   clarify: ClarifyInfo
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -10,12 +11,13 @@ const emit = defineEmits<{
 }>()
 
 function handleSelect(option: { label: string; value: string }) {
+  if (props.disabled) return
   emit('select', option)
 }
 </script>
 
 <template>
-  <div class="clarify-card">
+  <div class="clarify-card" :class="{ 'is-disabled': disabled }">
     <div class="clarify-header">
       <span class="clarify-icon">❓</span>
       <span class="clarify-title">需要确认一下</span>
@@ -41,17 +43,25 @@ function handleSelect(option: { label: string; value: string }) {
 
 <style scoped>
 .clarify-card {
-  background: linear-gradient(135deg, #e8f4f8 0%, #d4e8eb 100%);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 12px;
+  background: rgba(240, 247, 250, 0.6);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(118, 75, 162, 0.1);
+  transition: all 0.3s ease;
+}
+
+.clarify-card.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(100%);
 }
 
 .clarify-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .clarify-icon {
@@ -65,21 +75,22 @@ function handleSelect(option: { label: string; value: string }) {
 
 .clarify-question {
   color: #555;
-  margin-bottom: 16px;
-  line-height: 1.5;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  font-size: 13px;
 }
 
 .clarify-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .option-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: white;
   border: none;
   border-radius: 25px;

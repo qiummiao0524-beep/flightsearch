@@ -71,6 +71,12 @@ export const useChatStore = defineStore('chat', () => {
     currentProgress.value = 'UNDERSTANDING'
     currentClarify.value = null
 
+    // 清除上一次的搜索结果，防止新搜索时展示老数据
+    tripInfo.value = null
+    flights.value = []
+    isMocked.value = false
+    debugInfo.value = null
+
     // 立即创建一条助手消息用于展示进度（后续就地更新）
     const progressMsgId = generateId()
     messages.value.push({
@@ -120,7 +126,7 @@ export const useChatStore = defineStore('chat', () => {
                 const updatedMsg = {
                   ...messages.value[idx],
                   progressStatus: data.status
-                }
+                } as ChatMessage
 
                 // 只在理解意图完成时，提取信息文本并展示。避免后期搜索/Mock的系统话术覆盖它
                 if (data.status === 'UNDERSTANDING_DONE' && data.message) {
@@ -134,20 +140,14 @@ export const useChatStore = defineStore('chat', () => {
               sessionId.value = data.session_id
 
               // 更新行程信息
-              if (data.trip_info) {
-                tripInfo.value = data.trip_info
-              }
+              tripInfo.value = data.trip_info || null
 
               // 更新航班列表
-              if (data.flights && data.flights.length > 0) {
-                flights.value = data.flights
-                isMocked.value = data.is_mocked
-              }
+              flights.value = data.flights || []
+              isMocked.value = data.is_mocked || false
 
               // 更新调试信息
-              if (data.debug_info) {
-                debugInfo.value = data.debug_info
-              }
+              debugInfo.value = data.debug_info || null
 
               // 处理澄清请求
               if (data.response_type === 'clarify' && data.clarify) {
@@ -155,7 +155,8 @@ export const useChatStore = defineStore('chat', () => {
               }
 
               // 就地更新同一条消息：保留进度步骤，追加回复文本
-              currentProgress.value = 'DONE'
+              const finalStatus = data.response_type === 'clarify' ? 'UNDERSTANDING_DONE' : 'DONE'
+              currentProgress.value = finalStatus
               const idx = messages.value.findIndex(m => m.id === progressMsgId)
               if (idx !== -1) {
                 messages.value[idx] = {
@@ -166,8 +167,8 @@ export const useChatStore = defineStore('chat', () => {
                   clarify: data.clarify,
                   flights: data.flights,
                   is_mocked: data.is_mocked,
-                  progressStatus: 'DONE'
-                }
+                  progressStatus: finalStatus
+                } as ChatMessage
               }
             } else if (data.type === 'error') {
               throw new Error(data.message)
@@ -186,7 +187,7 @@ export const useChatStore = defineStore('chat', () => {
           content: errorMsg,
           type: 'error',
           progressStatus: 'ERROR'
-        }
+        } as ChatMessage
       }
     } finally {
       isLoading.value = false

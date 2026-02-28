@@ -3,14 +3,12 @@ import { ref, computed } from 'vue'
 import { useChatStore } from './stores/chat'
 import ChatBox from './components/ChatBox.vue'
 import TripCard from './components/TripCard.vue'
-import ClarifyCard from './components/ClarifyCard.vue'
 import FlightList from './components/FlightList.vue'
 import MockDataDialog from './components/MockDataDialog.vue'
 
 const chatStore = useChatStore()
 
 const showTripCard = computed(() => chatStore.tripInfo !== null)
-const showClarify = computed(() => chatStore.currentClarify !== null)
 const showFlights = computed(() => chatStore.flights.length > 0)
 
 // Mock 数据对话框状态
@@ -60,13 +58,6 @@ function closeMockDialog() {
           :trip-info="chatStore.tripInfo!" 
         />
         
-        <!-- 澄清卡片 -->
-        <ClarifyCard 
-          v-if="showClarify"
-          :clarify="chatStore.currentClarify!"
-          @select="chatStore.selectOption"
-        />
-        
         <!-- 航班列表 -->
         <FlightList 
           v-if="showFlights"
@@ -77,7 +68,7 @@ function closeMockDialog() {
         />
         
         <!-- 空状态 -->
-        <div v-if="!showTripCard && !showClarify && !showFlights" class="empty-info">
+        <div v-if="!showTripCard && !showFlights" class="empty-info">
           <div class="empty-icon">🌤️</div>
           <div class="empty-text">
             在左侧对话框输入您的出行需求<br>

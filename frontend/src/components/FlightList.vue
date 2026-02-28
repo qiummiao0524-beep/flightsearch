@@ -84,20 +84,74 @@ function formatDuration(minutes?: string | number): string {
   return `${h}h${min > 0 ? min + 'm' : ''}`
 }
 
-function getTransferInfo(segments: any[]): string {
+function getTransferStops(segments: any[]): string {
+  if (!segments || segments.length <= 1) return ''
+  return `${segments.length - 1}转`
+}
+
+function getTransferDetails(segments: any[]): string {
   if (!segments || segments.length <= 1) return ''
   const stops = segments.length - 1
-  if (stops === 1) {
-    // 1转显示机场三字码 (取第二段的出发机场，即中转点)
-    return `1转 经 ${segments[1]?.departure?.code || ''}`
+  
+  const details = []
+  for (let i = 0; i < stops; i++) {
+    const prevArrStr = segments[i].arrival?.time || ''
+    const currDepStr = segments[i+1].departure?.time || ''
+    const code = segments[i].arrival?.code || segments[i+1].departure?.code || ''
+    
+    let durationStr = ''
+    if (prevArrStr && currDepStr) {
+      const arrTime = new Date(prevArrStr.replace(/-/g, '/')).getTime()
+      const depTime = new Date(currDepStr.replace(/-/g, '/')).getTime()
+      if (!isNaN(arrTime) && !isNaN(depTime) && depTime > arrTime) {
+        const diffMins = Math.floor((depTime - arrTime) / 60000)
+        const h = Math.floor(diffMins / 60)
+        const m = diffMins % 60
+        durationStr = `${h}h${m > 0 ? m + 'm' : ''}`
+      }
+    }
+    details.push(`${code}${durationStr ? '(' + durationStr + ')' : ''}`)
   }
-  return `${stops}转`
+  
+  return `经 ${details.join(', ')}`
 }
+
+function getRTSegments(segments: any[]) {
+  if (!segments || segments.length <= 1) return { outbound: segments || [], inbound: [] }
+  if (segments.length === 2) return { outbound: [segments[0]], inbound: [segments[1]] }
+  
+  let splitIndex = 1
+  let maxGap = -1
+  
+  for (let i = 1; i < segments.length; i++) {
+    const prevArr = new Date(segments[i-1].arrival.time.replace(/-/g, '/')).getTime()
+    const currDep = new Date(segments[i].departure.time.replace(/-/g, '/')).getTime()
+    if (!isNaN(prevArr) && !isNaN(currDep)) {
+      const gap = currDep - prevArr
+      if (gap > maxGap) {
+        maxGap = gap
+        splitIndex = i
+      }
+    }
+  }
+  
+  return {
+    outbound: segments.slice(0, splitIndex),
+    inbound: segments.slice(splitIndex)
+  }
+}
+
 
 
 function formatPrice(price: string | number): string {
   const p = typeof price === 'string' ? parseFloat(price) : price
   return `¥${p.toLocaleString()}`
+}
+
+function getFlightNos(segments: any[]): string {
+  if (!segments || segments.length === 0) return ''
+  const nos = segments.map(s => s.flight_no).filter(Boolean)
+  return Array.from(new Set(nos)).join(' / ')
 }
 </script>
 
@@ -140,7 +194,7 @@ function formatPrice(price: string | number): string {
           <div class="flight-info" v-if="flight.travel_type !== 'RT'">
             <div class="airline">
               <span class="airline-logo">✈️</span>
-              <span class="flight-no">{{ flight.segments[0]?.flight_no }}</span>
+              <span class="flight-no">{{ getFlightNos(flight.segments) }}</span>
             </div>
             
             <div class="route">
@@ -153,10 +207,13 @@ function formatPrice(price: string | number): string {
                 <span class="duration">{{ formatDuration(flight.segments[0]?.duration) }}</span>
                 <div class="duration-line">
                   <span class="line"></span>
-                  <span class="transfer-info" v-if="flight.is_transfer">
-                    {{ getTransferInfo(flight.segments) }}
+                  <span class="transfer-info badge" v-if="flight.is_transfer">
+                    {{ getTransferStops(flight.segments) }}
                   </span>
                   <span class="line"></span>
+                </div>
+                <div class="transfer-details" v-if="flight.is_transfer" :title="getTransferDetails(flight.segments)">
+                  {{ getTransferDetails(flight.segments) }}
                 </div>
               </div>
               
@@ -169,51 +226,71 @@ function formatPrice(price: string | number): string {
 
           <!-- 往返程展示 -->
           <div class="flight-info rt-flight-info" v-else>
-            <!-- 去程 -->
-            <div class="rt-segment">
-              <div class="rt-segment-header">
-                <span class="segment-tag outbound">去程</span>
-                <span class="airline-logo">✈️</span>
-                <span class="flight-no">{{ flight.segments[0]?.flight_no }}</span>
+            <template v-for="rt in [getRTSegments(flight.segments)]" :key="'rt-'+flight.id">
+              <!-- 去程 -->
+              <div class="rt-segment" v-if="rt.outbound.length > 0">
+                <div class="rt-segment-header">
+                  <span class="segment-tag outbound">去程</span>
+                  <span class="airline-logo">✈️</span>
+                  <span class="flight-no">{{ getFlightNos(rt.outbound) }}</span>
+                </div>
+                <div class="route small-route">
+                  <div class="time-block">
+                    <span class="time">{{ formatTime(rt.outbound[0]?.departure.time) }}</span>
+                    <span class="airport">{{ rt.outbound[0]?.departure.code }}</span>
+                  </div>
+                  <div class="duration-block">
+                    <span class="duration">{{ formatDuration(rt.outbound.reduce((acc, seg) => acc + parseInt(seg.duration || '0'), 0)) }}</span>
+                    <div class="duration-line">
+                      <span class="line"></span>
+                      <span class="transfer-info badge" v-if="rt.outbound.length > 1">
+                        {{ getTransferStops(rt.outbound) }}
+                      </span>
+                      <span class="line"></span>
+                    </div>
+                    <div class="transfer-details" v-if="rt.outbound.length > 1" :title="getTransferDetails(rt.outbound)">
+                      {{ getTransferDetails(rt.outbound) }}
+                    </div>
+                  </div>
+                  <div class="time-block">
+                    <span class="time">{{ formatTime(rt.outbound[rt.outbound.length - 1]?.arrival.time) }}</span>
+                    <span class="airport">{{ rt.outbound[rt.outbound.length - 1]?.arrival.code }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="route small-route">
-                <div class="time-block">
-                  <span class="time">{{ formatTime(flight.segments[0]?.departure.time) }}</span>
-                  <span class="airport">{{ flight.segments[0]?.departure.code }}</span>
-                </div>
-                <div class="duration-block">
-                  <span class="duration">{{ formatDuration(flight.segments[0]?.duration) }}</span>
-                  <div class="duration-line"><span class="line"></span><span class="line"></span></div>
-                </div>
-                <div class="time-block">
-                  <span class="time">{{ formatTime(flight.segments[0]?.arrival.time) }}</span>
-                  <span class="airport">{{ flight.segments[0]?.arrival.code }}</span>
-                </div>
-              </div>
-            </div>
 
-            <!-- 返程 -->
-            <div class="rt-segment">
-              <div class="rt-segment-header">
-                <span class="segment-tag inbound">返程</span>
-                <span class="airline-logo">✈️</span>
-                <span class="flight-no">{{ flight.segments[1]?.flight_no }}</span>
+              <!-- 返程 -->
+              <div class="rt-segment" v-if="rt.inbound.length > 0">
+                <div class="rt-segment-header">
+                  <span class="segment-tag inbound">返程</span>
+                  <span class="airline-logo">✈️</span>
+                  <span class="flight-no">{{ getFlightNos(rt.inbound) }}</span>
+                </div>
+                <div class="route small-route">
+                  <div class="time-block">
+                    <span class="time">{{ formatTime(rt.inbound[0]?.departure.time) }}</span>
+                    <span class="airport">{{ rt.inbound[0]?.departure.code }}</span>
+                  </div>
+                  <div class="duration-block">
+                    <span class="duration">{{ formatDuration(rt.inbound.reduce((acc, seg) => acc + parseInt(seg.duration || '0'), 0)) }}</span>
+                    <div class="duration-line">
+                      <span class="line"></span>
+                      <span class="transfer-info badge" v-if="rt.inbound.length > 1">
+                        {{ getTransferStops(rt.inbound) }}
+                      </span>
+                      <span class="line"></span>
+                    </div>
+                    <div class="transfer-details" v-if="rt.inbound.length > 1" :title="getTransferDetails(rt.inbound)">
+                      {{ getTransferDetails(rt.inbound) }}
+                    </div>
+                  </div>
+                  <div class="time-block">
+                    <span class="time">{{ formatTime(rt.inbound[rt.inbound.length - 1]?.arrival.time) }}</span>
+                    <span class="airport">{{ rt.inbound[rt.inbound.length - 1]?.arrival.code }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="route small-route">
-                <div class="time-block">
-                  <span class="time">{{ formatTime(flight.segments[1]?.departure.time) }}</span>
-                  <span class="airport">{{ flight.segments[1]?.departure.code }}</span>
-                </div>
-                <div class="duration-block">
-                  <span class="duration">{{ formatDuration(flight.segments[1]?.duration) }}</span>
-                  <div class="duration-line"><span class="line"></span><span class="line"></span></div>
-                </div>
-                <div class="time-block">
-                  <span class="time">{{ formatTime(flight.segments[1]?.arrival.time) }}</span>
-                  <span class="airport">{{ flight.segments[1]?.arrival.code }}</span>
-                </div>
-              </div>
-            </div>
+            </template>
           </div>
           
           <!-- 价格 -->
@@ -408,6 +485,25 @@ function formatPrice(price: string | number): string {
   padding: 0 4px;
   white-space: nowrap;
   font-weight: 500;
+}
+
+.transfer-info.badge {
+  background: #fff3e0;
+  border-radius: 8px;
+  padding: 2px 6px;
+  color: #f57c00;
+  border: 1px solid #ffe0b2;
+}
+
+.transfer-details {
+  font-size: 10px;
+  color: #999;
+  margin-top: 4px;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
 
 
