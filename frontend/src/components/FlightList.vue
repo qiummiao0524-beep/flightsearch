@@ -349,37 +349,6 @@ function getFlightNos(segments: any[]): string {
           </div>
           
           <!-- 价格 -->
-<<<<<<< HEAD
-          <div class="price-block-wrapper">
-            <div class="price-block">
-              <span class="price">{{ formatPrice(flight.price.total) }}</span>
-              <div class="price-label-group">
-                <span class="price-label" v-if="hasMultiplePassengers(flight)">总价</span>
-                <span class="price-label" v-else>起</span>
-                <!-- 多乘客明细 Icon & Popover -->
-                <div class="price-detail-container" v-if="hasMultiplePassengers(flight)" @mousedown.stop>
-                  <button class="detail-icon-btn" @click="(e) => togglePopover(flight.id, e)" @mouseenter="activePopover = flight.id" @mouseleave="activePopover = null">
-                    ℹ️
-                  </button>
-                  
-                  <div class="price-popover" v-if="activePopover === flight.id" @mouseenter="activePopover = flight.id" @mouseleave="activePopover = null">
-                    <div class="popover-header">价格明细</div>
-                    <div class="popover-body">
-                      <div class="passenger-price-row" v-for="(p, idx) in flight.price.passenger_prices" :key="idx">
-                        <span class="p-type">{{ getPassengerTypeName(p.type) }}票</span>
-                        <span class="p-calc">{{ p.count }} × {{ formatPrice(p.total) }}</span>
-                      </div>
-                    </div>
-                    <div class="popover-footer">
-                      <span>总计</span>
-                      <span class="total-sum">{{ formatPrice(flight.price.total) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="price-subtext" v-if="hasMultiplePassengers(flight)">由于包含多人，已展示总价</div>
-=======
           <div class="price-block">
             <div class="price-main">
               <span class="price">{{ formatPrice(flight.price.total) }}</span>
@@ -398,7 +367,6 @@ function getFlightNos(segments: any[]): string {
                 </div>
               </div>
             </div>
->>>>>>> develop
           </div>
         </div>
         
