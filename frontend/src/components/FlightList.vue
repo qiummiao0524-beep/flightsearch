@@ -636,17 +636,7 @@ function getFlightNos(segments: any[]): string {
 .price-main {
   display: flex;
   align-items: baseline;
-<<<<<<< HEAD
-  gap: 4px;
-}
-
-.price-label-group {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-=======
   justify-content: flex-end;
->>>>>>> develop
 }
 
 .price {
@@ -663,9 +653,6 @@ function getFlightNos(segments: any[]): string {
   margin-left: 4px;
 }
 
-<<<<<<< HEAD
-.price-subtext {
-=======
 .price-breakdown {
   position: absolute;
   right: 0;
@@ -744,107 +731,12 @@ function getFlightNos(segments: any[]): string {
 }
 
 .service-tag {
->>>>>>> develop
+
   font-size: 11px;
   color: #999;
   margin-top: 4px;
 }
 
-.price-detail-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.detail-icon-btn {
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.detail-icon-btn:hover {
-  opacity: 1;
-}
-
-.price-popover {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  width: 200px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  border: 1px solid #ebeef5;
-  z-index: 100;
-  overflow: hidden;
-  animation: fadeIn 0.2s ease-out;
-}
-
-/* 小箭头 */
-.price-popover::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  right: 14px;
-  border-width: 0 6px 6px 6px;
-  border-style: solid;
-  border-color: transparent transparent white transparent;
-  filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.05));
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.popover-header {
-  padding: 10px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
-}
-
-.popover-body {
-  padding: 8px 12px;
-}
-
-.passenger-price-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  font-size: 12px;
-}
-
-.p-type {
-  color: #666;
-  font-weight: 500;
-}
-
-.p-calc {
-  color: #333;
-}
-
-.popover-footer {
-  padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #f0f0f0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ff5722;
-}
 
 /* 往返程航班展示的间隔控制 */
 .rt-flight-info {
@@ -868,11 +760,6 @@ function getFlightNos(segments: any[]): string {
   display: flex;
   align-items: center;
   gap: 6px;
-<<<<<<< HEAD
-  margin-bottom: 8px;
-}
-
-=======
   margin-bottom: 6px;
   width: 100%;
   overflow: hidden;
@@ -899,5 +786,4 @@ function getFlightNos(segments: any[]): string {
 .small-route .time {
   font-size: 16px;
 }
->>>>>>> develop
 </style>
