@@ -203,8 +203,26 @@ async def chat(request: ChatRequest):
                 search_res = {"success": False, "flights": []}
             
             if search_res.get("success") and search_res.get("flights"):
-                flights = search_res["flights"]
-            else:
+                raw_flights = search_res["flights"]
+                airline_code = session["trip_info"].get("airline_code")
+                flight_no = session["trip_info"].get("flight_no")
+                
+                # 判断用户是否有中转意图
+                wants_transfer = bool(session["trip_info"].get("transfer_cities") or (flight_no and "/" in flight_no))
+                direct_only = not wants_transfer
+                
+                filtered_flights = flight_search_service.filter_flights(
+                    raw_flights,
+                    airline_code=airline_code,
+                    flight_no=flight_no,
+                    direct_only=direct_only
+                )
+                
+                if filtered_flights:
+                    flights = filtered_flights
+
+            # 如果未找到航班或过滤后为空，则执行 Mock 降级
+            if not flights:
                 # 发送进度：正在 Mock
                 msg = '未找到匹配航线，正在为您安排 Mock 数据...' if not force_mock else '正在为您生成符合条件的 Mock 数据...'
                 yield f"data: {json.dumps({'type': 'progress', 'status': 'MOCKING', 'message': msg})}\n\n"
