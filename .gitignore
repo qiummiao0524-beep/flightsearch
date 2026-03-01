@@ -49,4 +49,6 @@ frontend/.gitignore
 orchestrator/
 AGENTS.md
 CLAUDE.md
+test_search.py
+
 
