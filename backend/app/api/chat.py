@@ -62,53 +62,6 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers
         # 提取价格
         min_price = tp.get("minPrice", 0)
         price_details = tp.get("priceDetails", {})
-<<<<<<< HEAD
-        first_detail = list(price_details.values())[0] if isinstance(price_details, dict) and price_details else {}
-        
-        req_passengers = {p.get("type", "ADT"): p.get("count", 1) for p in (passengers or [{"type": "ADT", "count": 1}])}
-        total_amount = 0
-        total_base = 0
-        total_tax = 0
-        passenger_prices = []
-        
-        for ptype, count in req_passengers.items():
-            if count <= 0: continue
-            
-            # Map ADT -> adultPrice, CHD -> childPrice, INF -> infantPrice
-            if ptype == "ADT":
-                key = "adultPrice"
-            elif ptype == "CHD":
-                key = "childPrice"
-            elif ptype == "INF":
-                key = "infantPrice"
-            else:
-                key = f"{ptype.lower()}Price"
-                
-            p_price = first_detail.get(key, {})
-            if not p_price and ptype == "ADT":
-                p_price = first_detail.get("adultPrice", {})
-            if p_price:
-                base = p_price.get("price", 0)
-                tax = p_price.get("tax", 0)
-                total = p_price.get("totalPrice", base + tax)
-                total_base += base * count
-                total_tax += tax * count
-                total_amount += total * count
-                passenger_prices.append({
-                    "type": ptype,
-                    "count": count,
-                    "base": str(base),
-                    "tax": str(tax),
-                    "total": str(total)
-                })
-        
-        if total_amount == 0:
-            adult_price = first_detail.get("adultPrice", {})
-            total_amount = adult_price.get("totalPrice", min_price)
-            total_base = adult_price.get("price", min_price - 364 if min_price > 364 else min_price)
-            total_tax = adult_price.get("tax", 364)
-            passenger_prices = [{"type": "ADT", "count": 1, "base": str(total_base), "tax": str(total_tax), "total": str(total_amount)}]
-=======
         
         price_breakdown = []
         total_price_grand = 0
@@ -149,7 +102,6 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers
         cabin_class = first_detail.get("cabinClass", "Y") if first_detail else "Y"
         cabin_num = first_detail.get("cabinNum", "") if first_detail else ""
         cabin_name = first_detail.get("cabinName", "经济舱") if first_detail else "经济舱"
->>>>>>> develop
         
         flights.append({
             "id": tp.get("flightNoGroup", ""),
@@ -161,19 +113,11 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers
             "cabin_name": cabin_name,
             "cabin_num": cabin_num,
             "price": {
-<<<<<<< HEAD
-                "total": str(total_amount),
-                "base": str(total_base),
-                "tax": str(total_tax),
-                "currency": "CNY",
-                "passenger_prices": passenger_prices
-=======
                 "total": str(total_price_grand),
                 "base": str(total_base_grand),
                 "tax": str(total_tax_grand),
                 "currency": "CNY",
                 "passengers": price_breakdown
->>>>>>> develop
             },
             "services": [],
             "labels": []

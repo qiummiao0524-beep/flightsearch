@@ -274,18 +274,6 @@ class FlightMockService:
         try:
             dep_dt = datetime.strptime(f"{dep_date} {dep_time}", "%Y-%m-%d %H:%M")
         except:
-<<<<<<< HEAD
-            dep_timestamp = int(datetime.now().timestamp() * 1000)
-            
-        # 随机生成飞行时长（120分钟到300分钟之间）
-        import random
-        duration_minutes = random.randint(120, 300)
-        arr_timestamp = dep_timestamp + duration_minutes * 60 * 1000
-        
-        # 格式化出抵达的日期和时间
-        arr_dt = datetime.fromtimestamp(arr_timestamp / 1000)
-        arr_datetime_fmt = arr_dt.strftime("%Y%m%d%H%M00")
-=======
             dep_dt = datetime.now()
             
         arr_dt = dep_dt + timedelta(minutes=210)
@@ -294,8 +282,8 @@ class FlightMockService:
         arr_timestamp = int(arr_dt.timestamp() * 1000)
         
         dep_datetime = dep_dt.strftime("%Y%m%d%H%M")
+        arr_datetime = dep_dt.strftime("%Y%m%d%0000") # Fixing potential inconsistency if any, but keeping develop logic
         arr_datetime = arr_dt.strftime("%Y%m%d%H%M")
->>>>>>> develop
         
         # 构建航段
         segment = {
@@ -303,22 +291,14 @@ class FlightMockService:
             "arrAirportCode": arr_city,
             "arrAirportTerm": "T2",
             "arrCityCode": arr_city,
-<<<<<<< HEAD
-            "arrDateTime": arr_datetime_fmt,
-=======
             "arrDateTime": arr_datetime,
->>>>>>> develop
             "arrTime": arr_timestamp,
             "depAirportCode": dep_city,
             "depAirportTerm": "T2",
             "depCityCode": dep_city,
             "depDateTime": dep_datetime,
             "depTime": dep_timestamp,
-<<<<<<< HEAD
-            "duration": duration_minutes,
-=======
             "duration": 210,
->>>>>>> develop
             "flightShare": False,
             "key": segment_key,
             "marketingAirCode": airline,
@@ -333,18 +313,6 @@ class FlightMockService:
         
         # 构建价格详情
         price_detail_key = str(hash(f"{flight_no}_{price}") % (10**10))
-<<<<<<< HEAD
-        price_detail = self._build_price_detail(price, 364, passengers)
-        price_detail.update({
-            "cabinClass": "Y",
-            "cabinNum": "9",
-            "flightKeys": [{"flightKey": segment_key, "index": 1, "mainSegment": True, "airLineIndex": 1, "mainAirline": airline}],
-            "id": price_detail_key,
-            "merchantId": 317,
-            "resourceType": "GW",
-            "gds": "GW"
-        })
-=======
         total_price, price_detail = self._build_price_detail(
             base_price=price,
             cabin_class=cabin_class,
@@ -356,7 +324,6 @@ class FlightMockService:
             is_rt=False
         )
         price_detail["id"] = price_detail_key
->>>>>>> develop
         
         # 构建完整请求
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}"
@@ -517,23 +484,6 @@ class FlightMockService:
         
         # 价格详情（往返总价）
         price_detail_key = str(hash(f"{outbound_flight}_{inbound_flight}_{price}") % (10**10))
-<<<<<<< HEAD
-        total_price = price * 2 + 100  # 基准往返总价（成人），这里改用统一计算
-        
-        price_detail = self._build_price_detail(total_price - 50, 50, passengers) # 调整基础价格匹配原来的 RT 格式
-        price_detail.update({
-            "cabinClass": "Y",
-            "cabinNum": "9",
-            "flightKeys": [
-                {"flightKey": outbound_key, "index": 1, "mainSegment": True, "airLineIndex": 1, "mainAirline": airline},
-                {"flightKey": inbound_key, "index": 2, "mainSegment": True, "airLineIndex": 2, "mainAirline": airline}
-            ],
-            "id": price_detail_key,
-            "merchantId": 1047258,
-            "resourceType": "TCPL",
-            "gds": "TCPL"
-        })
-=======
         total_price, price_detail = self._build_price_detail(
             base_price=price,
             cabin_class=cabin_class,
@@ -545,7 +495,6 @@ class FlightMockService:
             is_rt=True
         )
         price_detail["id"] = price_detail_key
->>>>>>> develop
         
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}-{return_date_fmt}"
         
@@ -712,18 +661,6 @@ class FlightMockService:
         
         # 价格详情
         price_detail_key = str(hash(f"{'_'.join(flight_nos)}_{price}") % (10**10))
-<<<<<<< HEAD
-        price_detail = self._build_price_detail(price, 364, passengers)
-        price_detail.update({
-            "cabinClass": "Y",
-            "cabinNum": "9",
-            "flightKeys": flight_key_list,
-            "id": price_detail_key,
-            "merchantId": 317,
-            "resourceType": "GW",
-            "gds": "GW"
-        })
-=======
         total_price, price_detail = self._build_price_detail(
             base_price=price,
             cabin_class=cabin_class,
@@ -735,7 +672,6 @@ class FlightMockService:
             is_rt=False
         )
         price_detail["id"] = price_detail_key
->>>>>>> develop
         
         # 构建完整请求
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}"
@@ -944,18 +880,6 @@ class FlightMockService:
 
         # 价格详情（往返总价）
         price_detail_key = str(hash(f"{'_'.join(flight_nos)}_{price}") % (10**10))
-<<<<<<< HEAD
-        price_detail = self._build_price_detail(price, 50, passengers)
-        price_detail.update({
-            "cabinClass": "Y",
-            "cabinNum": "9",
-            "flightKeys": flight_key_list,
-            "id": price_detail_key,
-            "merchantId": 1047258,
-            "resourceType": "TCPL",
-            "gds": "TCPL"
-        })
-=======
         # collect all segment keys
         all_segment_keys = [fk["flightKey"] for fk in flight_key_list]
         total_price, price_detail = self._build_price_detail(
@@ -970,7 +894,6 @@ class FlightMockService:
         )
         # flight_key_list from our builder logic needs to use index 1,2,3 mapped across RT, we'll let the price builder handle it.
         price_detail["id"] = price_detail_key
->>>>>>> develop
         
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}-{return_date_fmt}"
         flight_no_group = "_".join(outbound_flight_group) + "|" + "_".join(inbound_flight_group)
