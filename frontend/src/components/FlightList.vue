@@ -94,8 +94,8 @@ function formatTime(dateStr?: string): string {
   const match = dateStr.match(timeRegex)
 
   if (match) {
-    hours = match[1]
-    minutes = match[2]
+    hours = match[1] || '00'
+    minutes = match[2] || '00'
   } else if (dateStr.length >= 12 && /^\d+$/.test(dateStr)) {
     // 2. 处理纯数字紧凑格式: 202602231005
     hours = dateStr.substring(8, 10)
@@ -104,10 +104,10 @@ function formatTime(dateStr?: string): string {
     // 3. 兜底逻辑：如果无法匹配，尝试查找最后一部分可能的时间
     const parts = dateStr.split(' ')
     const lastPart = parts[parts.length - 1]
-    if (lastPart.includes(':')) {
+    if (lastPart && lastPart.includes(':')) {
       const timeParts = lastPart.split(':')
-      hours = timeParts[0]
-      minutes = timeParts[1]
+      hours = timeParts[0] || '00'
+      minutes = timeParts[1] || '00'
     } else {
       return dateStr
     }
@@ -187,8 +187,17 @@ function getRTSegments(segments: any[]) {
 
 
 function formatPrice(price: string | number): string {
-  const p = typeof price === 'string' ? parseFloat(price) : price
-  return `¥${p.toLocaleString()}`
+  if (!price) return '¥0'
+  return `¥${parseInt(price.toString()).toLocaleString()}`
+}
+
+function getPassengerSubTypeName(type: string): string {
+  const map: Record<string, string> = {
+    'ADT': '成人',
+    'CHD': '儿童',
+    'INF': '婴儿'
+  }
+  return map[type] || type
 }
 
 function getFlightNos(segments: any[]): string {
@@ -238,6 +247,7 @@ function getFlightNos(segments: any[]): string {
             <div class="airline">
               <span class="airline-logo">✈️</span>
               <span class="flight-no">{{ getFlightNos(flight.segments) }}</span>
+              <span v-if="flight.cabin_name" class="cabin-info">{{ flight.cabin_name }}({{ flight.cabin_class }})</span>
             </div>
             
             <div class="route">
@@ -276,6 +286,7 @@ function getFlightNos(segments: any[]): string {
                   <span class="segment-tag outbound">去程</span>
                   <span class="airline-logo">✈️</span>
                   <span class="flight-no">{{ getFlightNos(rt.outbound) }}</span>
+                  <span v-if="flight.cabin_name" class="cabin-info">{{ flight.cabin_name }}({{ flight.cabin_class }})</span>
                 </div>
                 <div class="route small-route">
                   <div class="time-block">
@@ -308,6 +319,7 @@ function getFlightNos(segments: any[]): string {
                   <span class="segment-tag inbound">返程</span>
                   <span class="airline-logo">✈️</span>
                   <span class="flight-no">{{ getFlightNos(rt.inbound) }}</span>
+                  <span v-if="flight.cabin_name" class="cabin-info">{{ flight.cabin_name }}({{ flight.cabin_class }})</span>
                 </div>
                 <div class="route small-route">
                   <div class="time-block">
@@ -337,6 +349,7 @@ function getFlightNos(segments: any[]): string {
           </div>
           
           <!-- 价格 -->
+<<<<<<< HEAD
           <div class="price-block-wrapper">
             <div class="price-block">
               <span class="price">{{ formatPrice(flight.price.total) }}</span>
@@ -366,6 +379,26 @@ function getFlightNos(segments: any[]): string {
               </div>
             </div>
             <div class="price-subtext" v-if="hasMultiplePassengers(flight)">由于包含多人，已展示总价</div>
+=======
+          <div class="price-block">
+            <div class="price-main">
+              <span class="price">{{ formatPrice(flight.price.total) }}</span>
+              <span class="price-label">总价</span>
+            </div>
+            
+            <!-- 乘客价格明细悬浮/展示 -->
+            <div class="price-breakdown" v-if="flight.price.passengers && flight.price.passengers.length > 0">
+              <div class="breakdown-toggle">
+                明细 <span class="arrow">▼</span>
+              </div>
+              <div class="breakdown-dropdown">
+                <div v-for="(p, i) in flight.price.passengers" :key="'p-'+i" class="breakdown-item">
+                  <span class="p-name">{{ getPassengerSubTypeName(p.type) }} x {{ p.count }}</span>
+                  <span class="p-val">{{ formatPrice(p.total) }}</span>
+                </div>
+              </div>
+            </div>
+>>>>>>> develop
           </div>
         </div>
         
@@ -475,12 +508,13 @@ function getFlightNos(segments: any[]): string {
 
 .flight-main {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 16px;
 }
 
 .flight-info {
   flex: 1;
+  min-width: 0;
 }
 
 .airline {
@@ -488,6 +522,8 @@ function getFlightNos(segments: any[]): string {
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
+  width: 100%;
+  overflow: hidden;
 }
 
 .airline-logo {
@@ -498,12 +534,31 @@ function getFlightNos(segments: any[]): string {
   font-size: 13px;
   color: #666;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.cabin-info {
+  font-size: 11px;
+  color: #888;
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .route {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  margin-top: 12px;
+  max-width: 400px;
 }
 
 .time-block {
@@ -573,6 +628,23 @@ function getFlightNos(segments: any[]): string {
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.transfer-details:hover {
+  overflow: visible;
+  white-space: normal;
+  z-index: 10;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 200px;
 }
 
 
@@ -584,8 +656,19 @@ function getFlightNos(segments: any[]): string {
 }
 
 .price-block {
+  text-align: right;
+  min-width: 130px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.price-main {
   display: flex;
   align-items: baseline;
+<<<<<<< HEAD
   gap: 4px;
 }
 
@@ -593,20 +676,107 @@ function getFlightNos(segments: any[]): string {
   display: flex;
   align-items: center;
   gap: 2px;
+=======
+  justify-content: flex-end;
+>>>>>>> develop
 }
 
 .price {
   font-size: 20px;
-  font-weight: 600;
-  color: #ff5722;
+  font-weight: 700;
+  color: #ff5a5f;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.5px;
 }
 
 .price-label {
   font-size: 12px;
   color: #999;
+  margin-left: 4px;
 }
 
+<<<<<<< HEAD
 .price-subtext {
+=======
+.price-breakdown {
+  position: absolute;
+  right: 0;
+  bottom: -24px;
+  cursor: pointer;
+}
+
+.breakdown-toggle {
+  font-size: 12px;
+  color: #666;
+  text-decoration: underline dashed;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+
+.breakdown-toggle:hover {
+  color: #333;
+}
+
+.breakdown-toggle .arrow {
+  font-size: 10px;
+  display: inline-block;
+  transform: scale(0.8);
+}
+
+.breakdown-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  padding: 12px;
+  width: max-content;
+  min-width: 150px;
+  z-index: 100;
+  border: 1px solid #f0f0f0;
+}
+
+.price-breakdown:hover .breakdown-dropdown {
+  display: block;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #666;
+  border-bottom: 1px dashed #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.breakdown-item:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.p-name {
+  color: #333;
+}
+
+.p-val {
+  color: #ff5a5f;
+  font-weight: 500;
+}
+.flight-services {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
+}
+
+.service-tag {
+>>>>>>> develop
   font-size: 11px;
   color: #999;
   margin-top: 4px;
@@ -730,7 +900,36 @@ function getFlightNos(segments: any[]): string {
   display: flex;
   align-items: center;
   gap: 6px;
+<<<<<<< HEAD
   margin-bottom: 8px;
 }
 
+=======
+  margin-bottom: 6px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.segment-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.segment-tag.outbound {
+  background-color: #4daaa7;
+}
+
+.segment-tag.inbound {
+  background-color: #e58b68;
+}
+
+.small-route .time {
+  font-size: 16px;
+}
+>>>>>>> develop
 </style>

@@ -237,13 +237,22 @@ class FlightSearchService:
                 total_tax = tax
                 total_amount = total
             
+            cabin_class_code = price_quote.get("cabinClassCode", "Y")
+            cabin_name_map = {
+                "Y": "经济舱",
+                "S": "超级经济舱",
+                "C": "商务舱",
+                "F": "头等舱"
+            }
+            
             flights.append({
                 "id": trip.get("id", ""),
                 "type": trip.get("type", "INTL_NORMAL"),
                 "travel_type": req_travel_type,
                 "segments": flight_segments,
                 "is_transfer": is_transfer,
-                "cabin_class": price_quote.get("cabinClassCode", "Y"),
+                "cabin_class": cabin_class_code,
+                "cabin_name": cabin_name_map.get(cabin_class_code, "经济舱"),
                 "cabin_num": price_quote.get("cabinNum", ""),
                 "price": {
                     "total": str(total_amount),

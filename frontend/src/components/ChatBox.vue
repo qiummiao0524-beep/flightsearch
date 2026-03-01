@@ -68,6 +68,12 @@ watch(
   },
   { deep: true }
 )
+// 获取动态日期提示（当前时间 + 2天）
+const getDynamicDate = () => {
+  const date = new Date()
+  date.setDate(date.getDate() + 2)
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
 </script>
 
 <template>
@@ -83,7 +89,7 @@ watch(
         </div>
         <div class="welcome-tips">
           <div class="tip">例如：帮我查明天上海到香港的机票</div>
-          <div class="tip">例如：2月15日北京飞东京，两个大人</div>
+          <div class="tip">例如：{{ getDynamicDate() }}北京飞东京，两个大人</div>
           <div class="tip">例如：查一下MU5101航班</div>
         </div>
       </div>
@@ -138,7 +144,7 @@ watch(
             <ClarifyCard
               v-if="msg.type === 'clarify' && msg.clarify"
               :clarify="msg.clarify"
-              :disabled="msg.id !== chatStore.messages[chatStore.messages.length - 1].id"
+              :disabled="msg.id !== chatStore.messages[chatStore.messages.length - 1]?.id"
               @select="chatStore.selectOption"
             />
           </div>

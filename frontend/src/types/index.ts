@@ -76,12 +76,20 @@ export interface FlightInfo {
   segments: FlightSegment[]
   is_transfer: boolean
   cabin_class: string
+  cabin_name?: string
   cabin_num?: string
   price: {
     total: string
     base: string
     tax: string
     currency: string
+    passengers?: {
+      type: string
+      count: number
+      base: string
+      tax: string
+      total: string
+    }[]
   }
   services: string[]
   labels: any[]
