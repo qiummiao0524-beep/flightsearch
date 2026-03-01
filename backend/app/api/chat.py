@@ -12,7 +12,7 @@ from app.services.flight_search import flight_search_service
 from app.services.flight_mock import flight_mock_service
 from app.core.config import settings
 
-def extract_mock_flights(mock_request: dict, travel_type: str = "OW") -> list:
+def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers: list = None) -> list:
     """从 Mock 请求中直接提取结构化的航班数据"""
     segments_map = mock_request.get("segments", {})
     trip_products = mock_request.get("tripProduct", {}).get("tripProducts", [])
@@ -60,14 +60,51 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW") -> list:
         # 提取价格
         min_price = tp.get("minPrice", 0)
         price_details = tp.get("priceDetails", {})
-        adult_price = {}
-        if price_details:
-            first_detail = list(price_details.values())[0] if isinstance(price_details, dict) else {}
-            adult_price = first_detail.get("adultPrice", {})
+        first_detail = list(price_details.values())[0] if isinstance(price_details, dict) and price_details else {}
         
-        total_price = adult_price.get("totalPrice", min_price)
-        base_price = adult_price.get("price", min_price - 364 if min_price > 364 else min_price)
-        tax = adult_price.get("tax", 364)
+        req_passengers = {p.get("type", "ADT"): p.get("count", 1) for p in (passengers or [{"type": "ADT", "count": 1}])}
+        total_amount = 0
+        total_base = 0
+        total_tax = 0
+        passenger_prices = []
+        
+        for ptype, count in req_passengers.items():
+            if count <= 0: continue
+            
+            # Map ADT -> adultPrice, CHD -> childPrice, INF -> infantPrice
+            if ptype == "ADT":
+                key = "adultPrice"
+            elif ptype == "CHD":
+                key = "childPrice"
+            elif ptype == "INF":
+                key = "infantPrice"
+            else:
+                key = f"{ptype.lower()}Price"
+                
+            p_price = first_detail.get(key, {})
+            if not p_price and ptype == "ADT":
+                p_price = first_detail.get("adultPrice", {})
+            if p_price:
+                base = p_price.get("price", 0)
+                tax = p_price.get("tax", 0)
+                total = p_price.get("totalPrice", base + tax)
+                total_base += base * count
+                total_tax += tax * count
+                total_amount += total * count
+                passenger_prices.append({
+                    "type": ptype,
+                    "count": count,
+                    "base": str(base),
+                    "tax": str(tax),
+                    "total": str(total)
+                })
+        
+        if total_amount == 0:
+            adult_price = first_detail.get("adultPrice", {})
+            total_amount = adult_price.get("totalPrice", min_price)
+            total_base = adult_price.get("price", min_price - 364 if min_price > 364 else min_price)
+            total_tax = adult_price.get("tax", 364)
+            passenger_prices = [{"type": "ADT", "count": 1, "base": str(total_base), "tax": str(total_tax), "total": str(total_amount)}]
         
         flights.append({
             "id": tp.get("flightNoGroup", ""),
@@ -78,10 +115,11 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW") -> list:
             "cabin_class": "Y",
             "cabin_num": "9",
             "price": {
-                "total": str(total_price),
-                "base": str(base_price),
-                "tax": str(tax),
-                "currency": "CNY"
+                "total": str(total_amount),
+                "base": str(total_base),
+                "tax": str(total_tax),
+                "currency": "CNY",
+                "passenger_prices": passenger_prices
             },
             "services": [],
             "labels": []
@@ -195,7 +233,7 @@ async def chat(request: ChatRequest):
                 # 无论二方 Mock 接口返回成功与否，利用已生成的 mock 数据供前端展示
                 mock_request_data = mock_res.get("mock_request", {})
                 if mock_request_data:
-                    flights = extract_mock_flights(mock_request_data, session["trip_info"].get("travel_type", "OW"))
+                    flights = extract_mock_flights(mock_request_data, session["trip_info"].get("travel_type", "OW"), session["trip_info"].get("passengers"))
                     is_mocked = True
 
                 

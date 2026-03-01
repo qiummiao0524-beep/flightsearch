@@ -1,5 +1,48 @@
 <script setup lang="ts">
+
 import { ref, computed } from 'vue'
+
+// 控制 popover 显示状态的映射：flight id -> boolean
+const activePopover = ref<string | null>(null)
+
+function togglePopover(id: string, event: Event) {
+  event.stopPropagation()
+  if (activePopover.value === id) {
+    activePopover.value = null
+  } else {
+    activePopover.value = id
+  }
+}
+
+function handleOutsideClick() {
+  activePopover.value = null
+}
+
+// 映射乘客类型到中文展示
+const PASSENGER_TYPE_MAP: Record<string, string> = {
+  'ADT': '成人',
+  'CHD': '儿童',
+  'INF': '婴儿'
+}
+
+function getPassengerTypeName(type: string): string {
+  return PASSENGER_TYPE_MAP[type] || type
+}
+
+function hasMultiplePassengers(flight: FlightInfo): boolean {
+  if (!flight.price?.passenger_prices || flight.price.passenger_prices.length === 0) return false;
+  
+  // 计算总人数
+  const totalCount = flight.price.passenger_prices.reduce((sum, p) => sum + Number(p.count), 0);
+  if (totalCount > 1) return true;
+  
+  // 检查是否有非成人的类型 (比如: 1 CHD)
+  const passengerTypes = flight.price.passenger_prices.map(p => p.type);
+  if (passengerTypes.includes('CHD') || passengerTypes.includes('INF')) return true;
+  
+  return false;
+}
+
 import type { FlightInfo, DebugInfo } from '../types'
 
 const props = defineProps<{
@@ -156,7 +199,7 @@ function getFlightNos(segments: any[]): string {
 </script>
 
 <template>
-  <div class="flight-list">
+  <div class="flight-list" @mousedown="handleOutsideClick">
     <div class="list-header">
       <span class="header-icon">🔍</span>
       <span class="header-title">为您找到的航班</span>
@@ -294,9 +337,35 @@ function getFlightNos(segments: any[]): string {
           </div>
           
           <!-- 价格 -->
-          <div class="price-block">
-            <span class="price">{{ formatPrice(flight.price.total) }}</span>
-            <span class="price-label">起</span>
+          <div class="price-block-wrapper">
+            <div class="price-block">
+              <span class="price">{{ formatPrice(flight.price.total) }}</span>
+              <div class="price-label-group">
+                <span class="price-label" v-if="hasMultiplePassengers(flight)">总价</span>
+                <span class="price-label" v-else>起</span>
+                <!-- 多乘客明细 Icon & Popover -->
+                <div class="price-detail-container" v-if="hasMultiplePassengers(flight)" @mousedown.stop>
+                  <button class="detail-icon-btn" @click="(e) => togglePopover(flight.id, e)" @mouseenter="activePopover = flight.id" @mouseleave="activePopover = null">
+                    ℹ️
+                  </button>
+                  
+                  <div class="price-popover" v-if="activePopover === flight.id" @mouseenter="activePopover = flight.id" @mouseleave="activePopover = null">
+                    <div class="popover-header">价格明细</div>
+                    <div class="popover-body">
+                      <div class="passenger-price-row" v-for="(p, idx) in flight.price.passenger_prices" :key="idx">
+                        <span class="p-type">{{ getPassengerTypeName(p.type) }}票</span>
+                        <span class="p-calc">{{ p.count }} × {{ formatPrice(p.total) }}</span>
+                      </div>
+                    </div>
+                    <div class="popover-footer">
+                      <span>总计</span>
+                      <span class="total-sum">{{ formatPrice(flight.price.total) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="price-subtext" v-if="hasMultiplePassengers(flight)">由于包含多人，已展示总价</div>
           </div>
         </div>
         
@@ -507,9 +576,22 @@ function getFlightNos(segments: any[]): string {
 }
 
 
+.price-block-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  position: relative;
+}
+
 .price-block {
   display: flex;
   align-items: baseline;
+  gap: 4px;
+}
+
+.price-label-group {
+  display: flex;
+  align-items: center;
   gap: 2px;
 }
 
@@ -524,43 +606,114 @@ function getFlightNos(segments: any[]): string {
   color: #999;
 }
 
-.flight-services {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #eee;
-}
-
-.service-tag {
+.price-subtext {
   font-size: 11px;
-  padding: 2px 8px;
-  background: #e3f2fd;
-  color: #1976d2;
-  border-radius: 10px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px;
   color: #999;
+  margin-top: 4px;
 }
 
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+.price-detail-container {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.empty-text {
-  font-size: 14px;
+.detail-icon-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.2s;
 }
 
+.detail-icon-btn:hover {
+  opacity: 1;
+}
+
+.price-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 200px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  border: 1px solid #ebeef5;
+  z-index: 100;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* 小箭头 */
+.price-popover::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  border-width: 0 6px 6px 6px;
+  border-style: solid;
+  border-color: transparent transparent white transparent;
+  filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.05));
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popover-header {
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.popover-body {
+  padding: 8px 12px;
+}
+
+.passenger-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+.p-type {
+  color: #666;
+  font-weight: 500;
+}
+
+.p-calc {
+  color: #333;
+}
+
+.popover-footer {
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff5722;
+}
+
+/* 往返程航班展示的间隔控制 */
 .rt-flight-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  flex: 1;
 }
 
 .rt-segment {
@@ -568,34 +721,16 @@ function getFlightNos(segments: any[]): string {
   flex-direction: column;
   background: white;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 12px;
   border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
 .rt-segment-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
-.segment-tag {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: white;
-  font-weight: 500;
-}
-
-.segment-tag.outbound {
-  background-color: #4daaa7;
-}
-
-.segment-tag.inbound {
-  background-color: #e58b68;
-}
-
-.small-route .time {
-  font-size: 16px;
-}
 </style>

@@ -11,6 +11,14 @@ export interface PassengerInfo {
   count: number
 }
 
+export interface PassengerPrice {
+  type: string;
+  count: number;
+  base: string;
+  tax: string;
+  total: string;
+}
+
 export interface TripInfo {
   travel_type: 'OW' | 'RT' | 'OJ'
   departure?: AirportInfo

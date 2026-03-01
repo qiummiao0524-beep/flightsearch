@@ -130,6 +130,8 @@ class FlightSearchService:
         }
     
     def transform_response(self, resp: dict) -> list:
+        req_passengers_list = resp.get("data", resp).get("req", {}).get("userCommonReq", {}).get("reqPassengers", [])
+        req_passengers = {p.get("passengerType", "ADT"): int(p.get("passengerCount", 1)) for p in req_passengers_list}
         """将二方接口响应转换为前端展示格式
         
         Args:
@@ -195,8 +197,45 @@ class FlightSearchService:
             is_transfer = trip.get("hasTransferItem", False) or len(flight_segments) > 1
             
             # 提取价格
-            total_price = price_quote.get("totalPrice", {})
-            adult_price = total_price.get("adultPrice", {})
+            total_price_quote = price_quote.get("totalPrice", {})
+            
+            total_amount = 0
+            total_base = 0
+            total_tax = 0
+            passenger_prices = []
+            
+            # 使用提取的请求乘客信息结构，如果没有就使用默认成人1
+            pas_map = req_passengers if req_passengers else {"ADT": 1}
+            
+            for ptype, count in pas_map.items():
+                if count <= 0: continue
+                key = f"{ptype.lower()}Price" if ptype != "ADT" else "adultPrice"
+                p_price = total_price_quote.get(key, {})
+                if not p_price and ptype == "ADT":
+                    p_price = total_price_quote.get("adultPrice", {})
+                if p_price:
+                    base = p_price.get("price", 0)
+                    tax = p_price.get("tax", 0)
+                    total = p_price.get("totalPrice", base + tax)
+                    total_base += base * count
+                    total_tax += tax * count
+                    total_amount += total * count
+                    passenger_prices.append({
+                        "type": ptype,
+                        "count": count,
+                        "base": str(base),
+                        "tax": str(tax),
+                        "total": str(total)
+                    })
+                    
+            if total_amount == 0:
+                adult_price = total_price_quote.get("adultPrice", {})
+                base = adult_price.get("price", 0)
+                tax = adult_price.get("tax", 0)
+                total = adult_price.get("totalPrice", base + tax)
+                total_base = base
+                total_tax = tax
+                total_amount = total
             
             flights.append({
                 "id": trip.get("id", ""),
@@ -207,11 +246,12 @@ class FlightSearchService:
                 "cabin_class": price_quote.get("cabinClassCode", "Y"),
                 "cabin_num": price_quote.get("cabinNum", ""),
                 "price": {
-                    "total": adult_price.get("totalPrice", "0"),
-                    "base": adult_price.get("price", "0"),
-                    "tax": adult_price.get("tax", "0"),
-                    "foreign_total": adult_price.get("foreignTotalPrice", "0"),
-                    "currency": "CNY"
+                    "total": str(total_amount),
+                    "base": str(total_base),
+                    "tax": str(total_tax),
+                    "foreign_total": total_price_quote.get("adultPrice", {}).get("foreignTotalPrice", "0"),
+                    "currency": "CNY",
+                    "passenger_prices": passenger_prices
                 },
                 "services": [],
                 "labels": trip_product.get("labels", [])

@@ -63,6 +63,9 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
 - **特例（自动选取）**：只有当用户明确表示对中转城市"随意"、"随便"或"都可以"时，才直接从下方的城市代码参考中随机选取 N 个**不同于出发地和目的地**的城市三字码填入 `transfer_cities` 列表中，不再询问。
 - 用户未提及中转默认直飞
 
+## 上下文处理规则
+- **重要**：如果用户发起了全新的航线搜索（例如出发地、目的地或日期发生了根本性变化），此时应该将乘客数量、舱位等信息**重置为默认值**（如 1成人），除非用户在新的请求中再次明确指定。
+
 ## 城市/机场代码参考
 {CITY_CODE_REFERENCE}
 
@@ -475,9 +478,23 @@ class LLMService:
             return base
         
         result = base.copy()
+        
+        # 检查是否是全新的航线搜索 (出发地、目的地或日期改变)
+        is_new_route = False
+        if (update.get("departure_city") and update.get("departure_city") != base.get("departure_city")) or \
+           (update.get("arrival_city") and update.get("arrival_city") != base.get("arrival_city")) or \
+           (update.get("dep_date") and update.get("dep_date") != base.get("dep_date")):
+            is_new_route = True
+            
         for key, value in update.items():
             if value is not None:
-                result[key] = value
+                # 如果是全新的航线搜索，且 LLM 传回了默认的 1成年人 (通常在它认为这是新搜索时会重置)，直接覆盖历史的多乘客
+                if is_new_route and key == "passengers":
+                    # 直接使用新的乘客配置覆盖旧的，因为意图切换了
+                    result[key] = value
+                else:
+                    result[key] = value
+                    
         return result
 
 
