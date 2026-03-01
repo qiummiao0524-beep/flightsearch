@@ -16,6 +16,8 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW") -> list:
     """从 Mock 请求中直接提取结构化的航班数据"""
     segments_map = mock_request.get("segments", {})
     trip_products = mock_request.get("tripProduct", {}).get("tripProducts", [])
+    req_passengers = mock_request.get("searchParamRequest", {}).get("userCommonReq", {}).get("reqPassengers", [{"passengerType": "ADT", "passengerCount": 1}])
+    passenger_counts = {p.get("passengerType"): p.get("passengerCount") for p in req_passengers}
     
     flights = []
     for tp in trip_products:
@@ -60,14 +62,46 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW") -> list:
         # 提取价格
         min_price = tp.get("minPrice", 0)
         price_details = tp.get("priceDetails", {})
-        adult_price = {}
-        if price_details:
-            first_detail = list(price_details.values())[0] if isinstance(price_details, dict) else {}
-            adult_price = first_detail.get("adultPrice", {})
         
-        total_price = adult_price.get("totalPrice", min_price)
-        base_price = adult_price.get("price", min_price - 364 if min_price > 364 else min_price)
-        tax = adult_price.get("tax", 364)
+        price_breakdown = []
+        total_price_grand = 0
+        total_tax_grand = 0
+        total_base_grand = 0
+        
+        first_detail = list(price_details.values())[0] if isinstance(price_details, dict) and price_details else {}
+        
+        for p_type, count in passenger_counts.items():
+            if count <= 0: continue
+            
+            key_map = {"ADT": "adultPrice", "CHD": "childPrice", "INF": "infantPrice"}
+            price_key = key_map.get(p_type)
+            if price_key and price_key in first_detail:
+                p_detail = first_detail[price_key]
+                p_total = p_detail.get("totalPrice", 0)
+                p_base = p_detail.get("price", 0)
+                p_tax = p_detail.get("tax", 0)
+                
+                total_price_grand += p_total * count
+                total_base_grand += p_base * count
+                total_tax_grand += p_tax * count
+                
+                price_breakdown.append({
+                    "type": p_type,
+                    "count": count,
+                    "base": str(p_base),
+                    "tax": str(p_tax),
+                    "total": str(p_total)
+                })
+
+        if not price_breakdown:
+            adult_price = first_detail.get("adultPrice", {})
+            total_price_grand = adult_price.get("totalPrice", min_price)
+            total_base_grand = adult_price.get("price", min_price - 364 if min_price > 364 else min_price)
+            total_tax_grand = adult_price.get("tax", 364)
+        
+        cabin_class = first_detail.get("cabinClass", "Y") if first_detail else "Y"
+        cabin_num = first_detail.get("cabinNum", "") if first_detail else ""
+        cabin_name = first_detail.get("cabinName", "经济舱") if first_detail else "经济舱"
         
         flights.append({
             "id": tp.get("flightNoGroup", ""),
@@ -75,13 +109,15 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW") -> list:
             "travel_type": travel_type,
             "segments": flight_segments,
             "is_transfer": len(flight_segments) > 1,
-            "cabin_class": "Y",
-            "cabin_num": "9",
+            "cabin_class": cabin_class,
+            "cabin_name": cabin_name,
+            "cabin_num": cabin_num,
             "price": {
-                "total": str(total_price),
-                "base": str(base_price),
-                "tax": str(tax),
-                "currency": "CNY"
+                "total": str(total_price_grand),
+                "base": str(total_base_grand),
+                "tax": str(total_tax_grand),
+                "currency": "CNY",
+                "passengers": price_breakdown
             },
             "services": [],
             "labels": []
@@ -186,7 +222,9 @@ async def chat(request: ChatRequest):
                     flight_no=session["trip_info"].get("flight_no"),
                     airline_code=session["trip_info"].get("airline_code"),
                     transfer_cities=session["trip_info"].get("transfer_cities"),
-                    passengers=session["trip_info"].get("passengers", [{"type": "ADT", "count": 1}])
+                    passengers=session["trip_info"].get("passengers", [{"type": "ADT", "count": 1}]),
+                    cabin_class=session["trip_info"].get("cabin_class"),
+                    cabin_name=session["trip_info"].get("cabin_name")
                 )
                 
                 if settings.DEBUG:

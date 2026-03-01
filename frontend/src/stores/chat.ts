@@ -34,29 +34,6 @@ export const useChatStore = defineStore('chat', () => {
     })
   }
 
-  // 添加助手消息
-  function addAssistantMessage(
-    content: string,
-    type: ChatMessage['type'],
-    extras?: {
-      trip_info?: TripInfo
-      clarify?: ClarifyInfo
-      flights?: FlightInfo[]
-      is_mocked?: boolean
-    }
-  ) {
-    messages.value.push({
-      id: generateId(),
-      role: 'assistant',
-      content,
-      type,
-      trip_info: extras?.trip_info,
-      clarify: extras?.clarify,
-      flights: extras?.flights,
-      is_mocked: extras?.is_mocked,
-      timestamp: new Date()
-    })
-  }
 
   // 发送消息 (进度内嵌版 — 进度节点持久化保留在消息中)
   async function send(content: string, selectedOption?: string) {
@@ -106,17 +83,27 @@ export const useChatStore = defineStore('chat', () => {
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+
+        // The last line might be incomplete, so we keep it in the buffer
+        buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.substring(6))
+          const trimmedLine = line.trim()
+          if (!trimmedLine) continue
+
+          if (trimmedLine.startsWith('data: ')) {
+            const jsonStr = trimmedLine.substring(6).trim()
+            if (!jsonStr) continue
+
+            const data = JSON.parse(jsonStr)
 
             if (data.type === 'progress') {
               currentProgress.value = data.status
