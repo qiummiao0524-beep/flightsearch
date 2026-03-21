@@ -239,7 +239,7 @@
       "airports": [
         {
           "code": "TAO",
-          "name": "流亭国际机场",
+          "name": "胶东国际机场",
           "is_default": true
         }
       ]
@@ -251,6 +251,1221 @@
         {
           "code": "DLC",
           "name": "周水子国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "天津",
+      "city_code": "TSN",
+      "airports": [
+        {
+          "code": "TSN",
+          "name": "滨海国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "太原",
+      "city_code": "TYN",
+      "airports": [
+        {
+          "code": "TYN",
+          "name": "武宿国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "石家庄",
+      "city_code": "SJW",
+      "airports": [
+        {
+          "code": "SJW",
+          "name": "正定国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "呼和浩特",
+      "city_code": "HET",
+      "airports": [
+        {
+          "code": "HET",
+          "name": "白塔国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "哈尔滨",
+      "city_code": "HRB",
+      "airports": [
+        {
+          "code": "HRB",
+          "name": "太平国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "沈阳",
+      "city_code": "SHE",
+      "airports": [
+        {
+          "code": "SHE",
+          "name": "桃仙国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "长春",
+      "city_code": "CGQ",
+      "airports": [
+        {
+          "code": "CGQ",
+          "name": "龙嘉国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "济南",
+      "city_code": "TNA",
+      "airports": [
+        {
+          "code": "TNA",
+          "name": "遥墙国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "合肥",
+      "city_code": "HFE",
+      "airports": [
+        {
+          "code": "HFE",
+          "name": "新桥国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "福州",
+      "city_code": "FOC",
+      "airports": [
+        {
+          "code": "FOC",
+          "name": "长乐国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "泉州",
+      "city_code": "JJN",
+      "airports": [
+        {
+          "code": "JJN",
+          "name": "晋江国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "南昌",
+      "city_code": "KHN",
+      "airports": [
+        {
+          "code": "KHN",
+          "name": "昌北国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "温州",
+      "city_code": "WNZ",
+      "airports": [
+        {
+          "code": "WNZ",
+          "name": "龙湾国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "宁波",
+      "city_code": "NGB",
+      "airports": [
+        {
+          "code": "NGB",
+          "name": "栎社国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "武汉",
+      "city_code": "WUH",
+      "airports": [
+        {
+          "code": "WUH",
+          "name": "天河国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "长沙",
+      "city_code": "CSX",
+      "airports": [
+        {
+          "code": "CSX",
+          "name": "黄花国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "郑州",
+      "city_code": "CGO",
+      "airports": [
+        {
+          "code": "CGO",
+          "name": "新郑国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "珠海",
+      "city_code": "ZUH",
+      "airports": [
+        {
+          "code": "ZUH",
+          "name": "金湾机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "桂林",
+      "city_code": "KWL",
+      "airports": [
+        {
+          "code": "KWL",
+          "name": "两江国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "南宁",
+      "city_code": "NNG",
+      "airports": [
+        {
+          "code": "NNG",
+          "name": "吴圩国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "海口",
+      "city_code": "HAK",
+      "airports": [
+        {
+          "code": "HAK",
+          "name": "美兰国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "三亚",
+      "city_code": "SYX",
+      "airports": [
+        {
+          "code": "SYX",
+          "name": "凤凰国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "贵阳",
+      "city_code": "KWE",
+      "airports": [
+        {
+          "code": "KWE",
+          "name": "龙洞堡国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "昆明",
+      "city_code": "KMG",
+      "airports": [
+        {
+          "code": "KMG",
+          "name": "长水国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "兰州",
+      "city_code": "LHW",
+      "airports": [
+        {
+          "code": "LHW",
+          "name": "中川国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "银川",
+      "city_code": "INC",
+      "airports": [
+        {
+          "code": "INC",
+          "name": "河东国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "西宁",
+      "city_code": "XNN",
+      "airports": [
+        {
+          "code": "XNN",
+          "name": "曹家堡国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "乌鲁木齐",
+      "city_code": "URC",
+      "airports": [
+        {
+          "code": "URC",
+          "name": "地窝堡国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "拉萨",
+      "city_code": "LXA",
+      "airports": [
+        {
+          "code": "LXA",
+          "name": "贡嘎机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "大阪",
+      "city_code": "OSA",
+      "airports": [
+        {
+          "code": "KIX",
+          "name": "关西国际机场",
+          "is_default": true
+        },
+        {
+          "code": "ITM",
+          "name": "伊丹机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "名古屋",
+      "city_code": "NGO",
+      "airports": [
+        {
+          "code": "NGO",
+          "name": "中部国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "福冈",
+      "city_code": "FUK",
+      "airports": [
+        {
+          "code": "FUK",
+          "name": "福冈机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "札幌",
+      "city_code": "SPK",
+      "airports": [
+        {
+          "code": "CTS",
+          "name": "新千岁机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "冲绳",
+      "city_code": "OKA",
+      "airports": [
+        {
+          "code": "OKA",
+          "name": "那霸机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "釜山",
+      "city_code": "PUS",
+      "airports": [
+        {
+          "code": "PUS",
+          "name": "金海国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "济州",
+      "city_code": "CJU",
+      "airports": [
+        {
+          "code": "CJU",
+          "name": "济州国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "胡志明市",
+      "city_code": "SGN",
+      "airports": [
+        {
+          "code": "SGN",
+          "name": "新山一国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "河内",
+      "city_code": "HAN",
+      "airports": [
+        {
+          "code": "HAN",
+          "name": "内排国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "雅加达",
+      "city_code": "JKT",
+      "airports": [
+        {
+          "code": "CGK",
+          "name": "苏加诺-哈达国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "巴厘岛",
+      "city_code": "DPS",
+      "airports": [
+        {
+          "code": "DPS",
+          "name": "伍拉·赖国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "马尼拉",
+      "city_code": "MNL",
+      "airports": [
+        {
+          "code": "MNL",
+          "name": "尼诺伊·阿基诺国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "孟买",
+      "city_code": "BOM",
+      "airports": [
+        {
+          "code": "BOM",
+          "name": "贾特拉帕蒂·希瓦吉国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "新德里",
+      "city_code": "DEL",
+      "airports": [
+        {
+          "code": "DEL",
+          "name": "英迪拉·甘地国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "科伦坡",
+      "city_code": "CMB",
+      "airports": [
+        {
+          "code": "CMB",
+          "name": "班达拉奈克国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "马累",
+      "city_code": "MLE",
+      "airports": [
+        {
+          "code": "MLE",
+          "name": "维拉纳国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "阿布扎比",
+      "city_code": "AUH",
+      "airports": [
+        {
+          "code": "AUH",
+          "name": "阿布扎比国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "多哈",
+      "city_code": "DOH",
+      "airports": [
+        {
+          "code": "DOH",
+          "name": "哈马德国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "巴黎",
+      "city_code": "PAR",
+      "airports": [
+        {
+          "code": "CDG",
+          "name": "戴高乐机场",
+          "is_default": true
+        },
+        {
+          "code": "ORY",
+          "name": "奥利机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "伦敦",
+      "city_code": "LON",
+      "airports": [
+        {
+          "code": "LHR",
+          "name": "希思罗机场",
+          "is_default": true
+        },
+        {
+          "code": "LGW",
+          "name": "盖特威克机场",
+          "is_default": false
+        },
+        {
+          "code": "STN",
+          "name": "斯坦斯特德机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "莫斯科",
+      "city_code": "MOW",
+      "airports": [
+        {
+          "code": "SVO",
+          "name": "谢列梅捷沃国际机场",
+          "is_default": true
+        },
+        {
+          "code": "DME",
+          "name": "多莫杰多沃国际机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "柏林",
+      "city_code": "BER",
+      "airports": [
+        {
+          "code": "BER",
+          "name": "勃兰登堡机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "慕尼黑",
+      "city_code": "MUC",
+      "airports": [
+        {
+          "code": "MUC",
+          "name": "慕尼黑机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "法兰克福",
+      "city_code": "FRA",
+      "airports": [
+        {
+          "code": "FRA",
+          "name": "法兰克福国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "阿姆斯特丹",
+      "city_code": "AMS",
+      "airports": [
+        {
+          "code": "AMS",
+          "name": "史基浦机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "苏黎世",
+      "city_code": "ZRH",
+      "airports": [
+        {
+          "code": "ZRH",
+          "name": "苏黎世机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "日内瓦",
+      "city_code": "GVA",
+      "airports": [
+        {
+          "code": "GVA",
+          "name": "日内瓦国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "罗马",
+      "city_code": "ROM",
+      "airports": [
+        {
+          "code": "FCO",
+          "name": "菲乌米奇诺机场",
+          "is_default": true
+        },
+        {
+          "code": "CIA",
+          "name": "钱皮诺机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "米兰",
+      "city_code": "MIL",
+      "airports": [
+        {
+          "code": "MXP",
+          "name": "马尔彭萨机场",
+          "is_default": true
+        },
+        {
+          "code": "LIN",
+          "name": "连纳特机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "威尼斯",
+      "city_code": "VCE",
+      "airports": [
+        {
+          "code": "VCE",
+          "name": "马可·波罗国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "马德里",
+      "city_code": "MAD",
+      "airports": [
+        {
+          "code": "MAD",
+          "name": "马德里-巴拉哈斯机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "巴塞罗那",
+      "city_code": "BCN",
+      "airports": [
+        {
+          "code": "BCN",
+          "name": "埃尔普拉特机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "伊斯坦布尔",
+      "city_code": "IST",
+      "airports": [
+        {
+          "code": "IST",
+          "name": "伊斯坦布尔机场",
+          "is_default": true
+        },
+        {
+          "code": "SAW",
+          "name": "萨比哈机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "雅典",
+      "city_code": "ATH",
+      "airports": [
+        {
+          "code": "ATH",
+          "name": "埃莱夫塞里奥斯机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "维也纳",
+      "city_code": "VIE",
+      "airports": [
+        {
+          "code": "VIE",
+          "name": "维也纳国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "哥本哈根",
+      "city_code": "CPH",
+      "airports": [
+        {
+          "code": "CPH",
+          "name": "哥本哈根凯斯楚普机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "斯德哥尔摩",
+      "city_code": "STO",
+      "airports": [
+        {
+          "code": "ARN",
+          "name": "阿兰达机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "奥斯陆",
+      "city_code": "OSL",
+      "airports": [
+        {
+          "code": "OSL",
+          "name": "加勒穆恩机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "赫尔辛基",
+      "city_code": "HEL",
+      "airports": [
+        {
+          "code": "HEL",
+          "name": "万塔机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "华沙",
+      "city_code": "WAW",
+      "airports": [
+        {
+          "code": "WAW",
+          "name": "肖邦机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "布拉格",
+      "city_code": "PRG",
+      "airports": [
+        {
+          "code": "PRG",
+          "name": "瓦茨拉夫·哈维尔机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "纽约",
+      "city_code": "NYC",
+      "airports": [
+        {
+          "code": "JFK",
+          "name": "肯尼迪国际机场",
+          "is_default": true
+        },
+        {
+          "code": "EWR",
+          "name": "纽瓦克自由国际机场",
+          "is_default": false
+        },
+        {
+          "code": "LGA",
+          "name": "拉瓜迪亚机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "洛杉矶",
+      "city_code": "LAX",
+      "airports": [
+        {
+          "code": "LAX",
+          "name": "洛杉矶国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "旧金山",
+      "city_code": "SFO",
+      "airports": [
+        {
+          "code": "SFO",
+          "name": "旧金山国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "芝加哥",
+      "city_code": "CHI",
+      "airports": [
+        {
+          "code": "ORD",
+          "name": "奥黑尔国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "西雅图",
+      "city_code": "SEA",
+      "airports": [
+        {
+          "code": "SEA",
+          "name": "西雅图-塔科马国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "波士顿",
+      "city_code": "BOS",
+      "airports": [
+        {
+          "code": "BOS",
+          "name": "洛根国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "华盛顿",
+      "city_code": "WAS",
+      "airports": [
+        {
+          "code": "IAD",
+          "name": "杜勒斯国际机场",
+          "is_default": true
+        },
+        {
+          "code": "DCA",
+          "name": "里根国家机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "亚特兰大",
+      "city_code": "ATL",
+      "airports": [
+        {
+          "code": "ATL",
+          "name": "哈茨菲尔德-杰克逊国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "迈阿密",
+      "city_code": "MIA",
+      "airports": [
+        {
+          "code": "MIA",
+          "name": "迈阿密国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "休斯顿",
+      "city_code": "HOU",
+      "airports": [
+        {
+          "code": "IAH",
+          "name": "乔治·布什洲际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "达拉斯",
+      "city_code": "DFW",
+      "airports": [
+        {
+          "code": "DFW",
+          "name": "达拉斯-沃思堡国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "拉斯维加斯",
+      "city_code": "LAS",
+      "airports": [
+        {
+          "code": "LAS",
+          "name": "哈里·里德国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "檀香山",
+      "city_code": "HNL",
+      "airports": [
+        {
+          "code": "HNL",
+          "name": "丹尼尔·K·井上国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "温哥华",
+      "city_code": "YVR",
+      "airports": [
+        {
+          "code": "YVR",
+          "name": "温哥华国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "多伦多",
+      "city_code": "YTO",
+      "airports": [
+        {
+          "code": "YYZ",
+          "name": "皮尔逊国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "蒙特利尔",
+      "city_code": "YMQ",
+      "airports": [
+        {
+          "code": "YUL",
+          "name": "特鲁多国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "墨西哥城",
+      "city_code": "MEX",
+      "airports": [
+        {
+          "code": "MEX",
+          "name": "贝尼托·胡亚雷斯国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "圣保罗",
+      "city_code": "SAO",
+      "airports": [
+        {
+          "code": "GRU",
+          "name": "瓜鲁柳斯国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "里约热内卢",
+      "city_code": "RIO",
+      "airports": [
+        {
+          "code": "GIG",
+          "name": "加利昂国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "布宜诺斯艾利斯",
+      "city_code": "BUE",
+      "airports": [
+        {
+          "code": "EZE",
+          "name": "埃塞萨国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "悉尼",
+      "city_code": "SYD",
+      "airports": [
+        {
+          "code": "SYD",
+          "name": "金斯福德·史密斯机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "墨尔本",
+      "city_code": "MEL",
+      "airports": [
+        {
+          "code": "MEL",
+          "name": "图拉马林机场",
+          "is_default": true
+        },
+        {
+          "code": "AVV",
+          "name": "阿瓦隆机场",
+          "is_default": false
+        }
+      ]
+    },
+    {
+      "city_name": "布里斯班",
+      "city_code": "BNE",
+      "airports": [
+        {
+          "code": "BNE",
+          "name": "布里斯班机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "珀斯",
+      "city_code": "PER",
+      "airports": [
+        {
+          "code": "PER",
+          "name": "珀斯机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "阿德莱德",
+      "city_code": "ADL",
+      "airports": [
+        {
+          "code": "ADL",
+          "name": "阿德莱德机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "奥克兰",
+      "city_code": "AKL",
+      "airports": [
+        {
+          "code": "AKL",
+          "name": "奥克兰机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "惠灵顿",
+      "city_code": "WLG",
+      "airports": [
+        {
+          "code": "WLG",
+          "name": "惠灵顿国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "基督城",
+      "city_code": "CHC",
+      "airports": [
+        {
+          "code": "CHC",
+          "name": "基督城国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "开罗",
+      "city_code": "CAI",
+      "airports": [
+        {
+          "code": "CAI",
+          "name": "开罗国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "约翰内斯堡",
+      "city_code": "JNB",
+      "airports": [
+        {
+          "code": "JNB",
+          "name": "奥利弗·坦博国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "开普敦",
+      "city_code": "CPT",
+      "airports": [
+        {
+          "code": "CPT",
+          "name": "开普敦国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "亚的斯亚贝巴",
+      "city_code": "ADD",
+      "airports": [
+        {
+          "code": "ADD",
+          "name": "博莱国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "内罗毕",
+      "city_code": "NBO",
+      "airports": [
+        {
+          "code": "NBO",
+          "name": "乔莫·肯雅塔国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "卡萨布兰卡",
+      "city_code": "CMN",
+      "airports": [
+        {
+          "code": "CMN",
+          "name": "穆罕默德五世国际机场",
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "city_name": "毛里求斯",
+      "city_code": "MRU",
+      "airports": [
+        {
+          "code": "MRU",
+          "name": "西沃萨古尔·拉姆古兰爵士国际机场",
           "is_default": true
         }
       ]

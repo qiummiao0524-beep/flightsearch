@@ -93,7 +93,8 @@ class FlightMockService:
         price: int = 1000,
         passengers: list = None,
         cabin_class: str = "Y",
-        cabin_name: str = "经济舱"
+        cabin_name: str = "经济舱",
+        flat_type: str = "TC"
     ) -> dict:
         """构建 Mock 接口请求
         
@@ -147,23 +148,23 @@ class FlightMockService:
             if transfer_cities:
                 return self._build_transfer_ow_mock_request(
                     dep_city, arr_city, dep_date, [flight_no], transfer_cities, 
-                    dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num
+                    dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num, flat_type
                 )
             else:
                 return self._build_ow_mock_request(
                     dep_city, arr_city, dep_date, flight_no, airline,
-                    dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num
+                    dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num, flat_type
                 )
         else:  # RT
             if transfer_cities:
                 return self._build_transfer_rt_mock_request(
                     dep_city, arr_city, dep_date, return_date, [flight_no, flight_no],
-                    transfer_cities, dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num
+                    transfer_cities, dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num, flat_type
                 )
             else:
                 return self._build_rt_mock_request(
                     dep_city, arr_city, dep_date, return_date,
-                    flight_no, airline, dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num
+                    flight_no, airline, dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num, flat_type
                 )
 
     def _build_price_detail(
@@ -259,7 +260,8 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y"
+        cabin_num: str = "Y",
+        flat_type: str = "TC"
     ) -> dict:
         """构建单程 Mock 请求"""
         passengers = passengers or [{"type": "ADT", "count": 1}]
@@ -330,7 +332,7 @@ class FlightMockService:
         
         return {
             "filter2": filter2,
-            "flatType": "TC",
+            "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
             "resourceType": "GW",
             "traceId": trace_id,
@@ -368,7 +370,7 @@ class FlightMockService:
             "ext": {
                 "searchType": "AUTOMATIC",
                 "FILTER2": filter2,
-                "flatType": "TC"
+                "flatType": flat_type
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -389,7 +391,8 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y"
+        cabin_num: str = "Y",
+        flat_type: str = "TC"
     ) -> dict:
         """构建往返 Mock 请求"""
         passengers = passengers or [{"type": "ADT", "count": 1}]
@@ -500,7 +503,7 @@ class FlightMockService:
         
         return {
             "filter2": filter2,
-            "flatType": "TC",
+            "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
             "resourceType": "TCPL",
             "traceId": trace_id,
@@ -542,7 +545,7 @@ class FlightMockService:
             "ext": {
                 "searchType": "NORMAL",
                 "FILTER2": filter2,
-                "flatType": "TC"
+                "flatType": flat_type
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -562,7 +565,8 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y"
+        cabin_num: str = "Y",
+        flat_type: str = "TC"
     ) -> dict:
         """构建中转单程 Mock 请求
         
@@ -679,7 +683,7 @@ class FlightMockService:
         
         return {
             "filter2": filter2,
-            "flatType": "TC",
+            "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
             "resourceType": "GW",
             "traceId": trace_id,
@@ -717,7 +721,7 @@ class FlightMockService:
             "ext": {
                 "searchType": "AUTOMATIC",
                 "FILTER2": filter2,
-                "flatType": "TC"
+                "flatType": flat_type
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -738,7 +742,8 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y"
+        cabin_num: str = "Y",
+        flat_type: str = "TC"
     ) -> dict:
         """构建中转往返 Mock 请求"""
         passengers = passengers or [{"type": "ADT", "count": 1}]
@@ -900,7 +905,7 @@ class FlightMockService:
         
         return {
             "filter2": filter2,
-            "flatType": "TC",
+            "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
             "resourceType": "TCPL",
             "traceId": trace_id,
@@ -936,7 +941,7 @@ class FlightMockService:
             "ext": {
                 "searchType": "NORMAL",
                 "FILTER2": filter2,
-                "flatType": "TC"
+                "flatType": flat_type
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -974,7 +979,8 @@ class FlightMockService:
         transfer_cities: list[str] = None,
         passengers: list = None,
         cabin_class: str = "Y",
-        cabin_name: str = "经济舱"
+        cabin_name: str = "经济舱",
+        flat_type: str = "TC"
     ) -> dict:
         """调用 Mock 接口创建航班数据
         
@@ -1028,7 +1034,8 @@ class FlightMockService:
                     passengers=passengers,
                     cabin_class=cabin_class,
                     cabin_name=cabin_name,
-                    cabin_num="F" if cabin_class == "F" else "J" if cabin_class == "C" else "W" if cabin_class == "S" else "Y"
+                    cabin_num="F" if cabin_class == "F" else "J" if cabin_class == "C" else "W" if cabin_class == "S" else "Y",
+                    flat_type=flat_type
                 )
             else:
                 mock_data = self._build_transfer_rt_mock_request(
@@ -1044,7 +1051,8 @@ class FlightMockService:
                     passengers=passengers,
                     cabin_class=cabin_class,
                     cabin_name=cabin_name,
-                    cabin_num="F" if cabin_class == "F" else "J" if cabin_class == "C" else "W" if cabin_class == "S" else "Y"
+                    cabin_num="F" if cabin_class == "F" else "J" if cabin_class == "C" else "W" if cabin_class == "S" else "Y",
+                    flat_type=flat_type
                 )
         else:
             # 普通航班 Mock
@@ -1059,7 +1067,8 @@ class FlightMockService:
                 transfer_cities=transfer_cities,
                 passengers=passengers,
                 cabin_class=cabin_class,
-                cabin_name=cabin_name
+                cabin_name=cabin_name,
+                flat_type=flat_type
             )
         
         # 包装成接口需要的格式

@@ -239,6 +239,8 @@ async def chat(request: ChatRequest):
                 dep_code = session["trip_info"].get("departure_code") or session["trip_info"].get("departure_city", "PEK")
                 arr_code = session["trip_info"].get("arrival_code") or session["trip_info"].get("arrival_city", "SHA")
                 
+                channel = session["trip_info"].get("channel")
+                
                 # 如果搜索无结果，执行 Mock
                 mock_res = await flight_mock_service.mock_flight(
                     dep_city=dep_code,
@@ -251,7 +253,8 @@ async def chat(request: ChatRequest):
                     transfer_cities=session["trip_info"].get("transfer_cities"),
                     passengers=session["trip_info"].get("passengers", [{"type": "ADT", "count": 1}]),
                     cabin_class=session["trip_info"].get("cabin_class"),
-                    cabin_name=session["trip_info"].get("cabin_name")
+                    cabin_name=session["trip_info"].get("cabin_name"),
+                    flat_type=channel if channel else "TC"
                 )
                 
                 if settings.DEBUG:

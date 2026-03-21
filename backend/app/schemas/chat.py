@@ -30,6 +30,7 @@ class TripInfo(BaseModel):
     airline_code: Optional[str] = Field(default=None, description="航司二字码")
     flight_no: Optional[str] = Field(default=None, description="航班号，支持用/分割表示中转航班")
     transfer_cities: Optional[list[str]] = Field(default=None, description="中转城市三字码列表")
+    channel: Optional[str] = Field(default=None, description="指定查询渠道(flatType)")
 
 
 class ClarifyOption(BaseModel):

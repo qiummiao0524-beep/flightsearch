@@ -17,6 +17,19 @@ def load_city_mapping():
 
 CITY_DATA = load_city_mapping()
 
+def load_flat_type():
+    """加载flatType映射数据"""
+    with open(os.path.join(DATA_DIR, "flatType.json"), "r", encoding="utf-8") as f:
+        return json.load(f)
+
+FLAT_TYPE_DATA = load_flat_type()
+
+# 构建flatType参考
+FLAT_TYPE_REFERENCE = "\n".join([
+    f"- {category['name']}: " + "，".join([f"{item['text']}({item['value']})" for item in category['values']])
+    for category in FLAT_TYPE_DATA
+])
+
 # 构建城市代码参考
 CITY_CODE_REFERENCE = "\n".join([
     f"- {city['city_name']}: " + "/".join([f"{a['code']}({a['name']})" for a in city['airports']])
@@ -54,6 +67,7 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
 - airline_code: 指定航司二字码
 - flight_no: 指定航班号，支持用 "/" 分割表示中转航班（如 "MU5001/MU5002"）
 - transfer_cities: 中转城市三字码列表（如用户说"经曼谷中转"则为 ["BKK"]）
+- channel: 查询渠道(flatType)，从下方的查询渠道参考中提取代码，默认 null
 
 ## 中转航班说明
 - 用户可以通过航班号中的 "/" 来表示中转航班
@@ -72,6 +86,9 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
 
 ## 航司代码参考
 {AIRLINE_REFERENCE}
+
+## 查询渠道参考
+{FLAT_TYPE_REFERENCE}
 
 ## 日期处理规则
 - 今天是 {datetime.now().strftime('%Y-%m-%d')}（星期{['一','二','三','四','五','六','日'][datetime.now().weekday()]}）
@@ -113,7 +130,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": "MU 或 null",
     "flight_no": "MU5101 或 MU5001/MU5002（中转）或 null",
-    "transfer_cities": ["BKK"] 或 null
+    "transfer_cities": ["BKK"] 或 null,
+    "channel": "WX 或 null"
   }},
   "clarify": {{
     "field": "需要澄清的字段名",
@@ -148,7 +166,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": null,
     "flight_no": null,
-    "transfer_cities": null
+    "transfer_cities": null,
+    "channel": null
   }},
   "clarify": {{
     "field": "route",
@@ -178,7 +197,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": null,
     "flight_no": null,
-    "transfer_cities": null
+    "transfer_cities": null,
+    "channel": null
   }},
   "clarify": {{
     "field": "dep_date",
@@ -211,7 +231,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": null,
     "flight_no": null,
-    "transfer_cities": null
+    "transfer_cities": null,
+    "channel": null
   }},
   "clarify": null,
   "message": "提取出行信息：明天上海至香港（不限机场）"
@@ -237,7 +258,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": null,
     "flight_no": null,
-    "transfer_cities": null
+    "transfer_cities": null,
+    "channel": null
   }},
   "clarify": null,
   "message": "提取出行信息：2月15日上海浦东至香港，2成人1儿童1婴儿"
@@ -263,7 +285,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": "MU",
     "flight_no": "MU5001/MU5002",
-    "transfer_cities": ["BKK"]
+    "transfer_cities": ["BKK"],
+    "channel": null
   }},
   "clarify": null,
   "message": "提取出行信息：明天 MU5001/MU5002 中转航班，上海至新加坡（经曼谷中转）"
@@ -288,7 +311,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": null,
     "flight_no": null,
-    "transfer_cities": null
+    "transfer_cities": null,
+    "channel": null
   }},
   "clarify": {{
     "field": "transfer_cities",
@@ -318,7 +342,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": null,
     "flight_no": null,
-    "transfer_cities": ["BKK", "SIN"]
+    "transfer_cities": ["BKK", "SIN"],
+    "channel": null
   }},
   "clarify": {{
     "field": "return_date",
@@ -348,7 +373,8 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
     "cabin_name": "经济舱",
     "airline_code": null,
     "flight_no": null,
-    "transfer_cities": null
+    "transfer_cities": null,
+    "channel": null
   }},
   "clarify": {{
     "field": "return_date",
