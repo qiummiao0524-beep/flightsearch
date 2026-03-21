@@ -90,7 +90,7 @@ class FlightMockService:
         airline_code: str = None,
         transfer_cities: list = None,
         dep_time: str = "12:00",
-        price: int = 1000,
+        price: int = 100,
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
@@ -190,8 +190,8 @@ class FlightMockService:
             "cabinNum": cabin_num,
             "flightKeys": [],
             "merchantId": 317,
-            "resourceType": "GW",
-            "gds": "GW"
+            "resourceType": "TCPL",
+            "gds": "TCPL"
         }
         
         for idx, key in enumerate(segment_keys):
@@ -334,7 +334,7 @@ class FlightMockService:
             "filter2": filter2,
             "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
-            "resourceType": "GW",
+            "resourceType": "TCPL",
             "traceId": trace_id,
             "searchScene": "AUTOMATIC",
             "searchParamRequest": {
@@ -685,7 +685,7 @@ class FlightMockService:
             "filter2": filter2,
             "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
-            "resourceType": "GW",
+            "resourceType": "TCPL",
             "traceId": trace_id,
             "searchScene": "AUTOMATIC",
             "searchParamRequest": {
@@ -1029,7 +1029,7 @@ class FlightMockService:
                     flight_nos=flight_nos,
                     transfer_cities=transfer_cities,
                     dep_time="12:00",
-                    price=int(1000 * {"Y": 1.0, "S": 1.5, "C": 3.0, "F": 5.0}.get(cabin_class, 1.0)),
+                    price=int(100 * {"Y": 1.0, "S": 1.5, "C": 3.0, "F": 5.0}.get(cabin_class, 1.0)),
                     trace_id=trace_id,
                     passengers=passengers,
                     cabin_class=cabin_class,
@@ -1046,7 +1046,7 @@ class FlightMockService:
                     flight_nos=flight_nos,
                     transfer_cities=transfer_cities,
                     dep_time="12:00",
-                    price=int(1000 * {"Y": 1.0, "S": 1.5, "C": 3.0, "F": 5.0}.get(cabin_class, 1.0)),
+                    price=int(100 * {"Y": 1.0, "S": 1.5, "C": 3.0, "F": 5.0}.get(cabin_class, 1.0)),
                     trace_id=trace_id,
                     passengers=passengers,
                     cabin_class=cabin_class,

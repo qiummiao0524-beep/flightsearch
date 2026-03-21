@@ -5,6 +5,7 @@ import ChatBox from './components/ChatBox.vue'
 import TripCard from './components/TripCard.vue'
 import FlightList from './components/FlightList.vue'
 import MockDataDialog from './components/MockDataDialog.vue'
+import GuideDialog from './components/GuideDialog.vue'
 
 const chatStore = useChatStore()
 
@@ -20,6 +21,17 @@ function openMockDialog() {
 
 function closeMockDialog() {
   showMockDialog.value = false
+}
+
+// 指南对话框状态
+const showGuideDialog = ref(false)
+
+function openGuideDialog() {
+  showGuideDialog.value = true
+}
+
+function closeGuideDialog() {
+  showGuideDialog.value = false
 }
 </script>
 
@@ -38,9 +50,14 @@ function closeMockDialog() {
         <span class="logo-icon">🛫</span>
         <span class="logo-text">AI 航班搜索</span>
       </div>
-      <button class="reset-btn" @click="chatStore.reset" v-if="chatStore.messages.length > 0">
-        重新开始
-      </button>
+      <div class="header-actions">
+        <button class="guide-btn" @click="openGuideDialog">
+          使用指南
+        </button>
+        <button class="reset-btn" @click="chatStore.reset" v-if="chatStore.messages.length > 0">
+          重新开始
+        </button>
+      </div>
     </header>
     
     <!-- 主内容区 -->
@@ -83,6 +100,12 @@ function closeMockDialog() {
       :visible="showMockDialog"
       :mock-data="chatStore.debugInfo?.mock_request || {}"
       @close="closeMockDialog"
+    />
+    
+    <!-- 功能指南对话框 -->
+    <GuideDialog
+      :visible="showGuideDialog"
+      @close="closeGuideDialog"
     />
   </div>
 </template>
@@ -223,6 +246,30 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.guide-btn {
+  padding: 8px 16px;
+  border: 1px solid #667eea;
+  border-radius: 20px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.guide-btn:hover {
+  background: #667eea;
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .reset-btn {

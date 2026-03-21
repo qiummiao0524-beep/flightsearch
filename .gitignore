@@ -38,9 +38,7 @@ backend/.env
 frontend/.env
 
 plan/
-backend/app/api/chat.py
 backend/test_*.py
-backend/app/data/
 backend/app.log
 plan/*.md
 tests/
