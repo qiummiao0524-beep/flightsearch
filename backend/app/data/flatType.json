@@ -1,0 +1,170 @@
+[
+    {
+        "name": "ALL",
+        "values": [
+            {
+                "value": "ALL",
+                "text": "全部"
+            }
+        ]
+    },
+    {
+        "name": "TOC",
+        "values": [
+            {
+                "value": "TC",
+                "text": "同程小程序"
+            },
+            {
+                "value": "WX",
+                "text": "微信H5"
+            },
+            {
+                "value": "CN",
+                "text": "PC渠道"
+            },
+            {
+                "value": "AP",
+                "text": "APP"
+            },
+            {
+                "value": "TH",
+                "text": "Touch"
+            },
+            {
+                "value": "QQ",
+                "text": "手机QQ"
+            },
+            {
+                "value": "WI",
+                "text": "微信国际站"
+            },
+            {
+                "value": "LM",
+                "text": "泛联盟-国内"
+            },
+            {
+                "value": "GM",
+                "text": "国际M站"
+            },
+            {
+                "value": "ET",
+                "text": "艺龙H5"
+            },
+            {
+                "value": "GP",
+                "text": "PC国际站"
+            },
+            {
+                "value": "EP",
+                "text": "艺龙PC"
+            },
+            {
+                "value": "EA",
+                "text": "艺龙APP"
+            },
+            {
+                "value": "NZ",
+                "text": "新西兰航空小程序"
+            },
+            {
+                "value": "LG",
+                "text": "泛联盟-国际"
+            },
+            {
+                "value": "HK",
+                "text": "微信香港钱包"
+            },
+            {
+                "value": "KY",
+                "text": "快应用"
+            },
+            {
+                "value": "BD",
+                "text": "百度小程序"
+            },
+            {
+                "value": "SL",
+                "text": "商旅渠道"
+            },
+            {
+                "value": "ZF",
+                "text": "支付宝"
+            },
+            {
+                "value": "CP",
+                "text": "校园通"
+            },
+            {
+                "value": "CC",
+                "text": "城市通"
+            },
+            {
+                "value": "HW",
+                "text": "华为"
+            },
+            {
+                "value": "DY",
+                "text": "抖音"
+            },
+            {
+                "value": "MD",
+                "text": "马达出行"
+            },
+            {
+                "value": "TX",
+                "text": "腾讯"
+            },
+            {
+                "value": "CT",
+                "text": "CCT"
+            },
+            {
+                "value": "APHK",
+                "text": "香港支付宝"
+            },
+            {
+                "value": "HM",
+                "text": "鸿蒙"
+            },
+            {
+                "value": "CCAP",
+                "text": "城市通APP"
+            },
+            {
+                "value": "HG",
+                "text": "HopeGoo-APP"
+            },
+            {
+                "value": "ZXAP",
+                "text": "中信银行动卡空间APP"
+            },
+            {
+                "value": "SS",
+                "text": "Seishin"
+            }
+        ]
+    },
+    {
+        "name": "TOB",
+        "values": [
+            {
+                "value": "B2B",
+                "text": "分销"
+            },
+            {
+                "value": "CBDS",
+                "text": "CBDS跨境分销"
+            }
+        ]
+    },
+    {
+        "name": "TOMETA",
+        "values": [
+            {
+                "value": "Meta",
+                "text": "Meta"
+            }
+        ]
+    }
+]
