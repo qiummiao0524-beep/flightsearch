@@ -50,3 +50,8 @@ frontend/.gitignore
 orchestrator/
 AGENTS.md
 CLAUDE.md
+test_search.py
+plan/
+.agents/
+.agent/
+skills-lock.json

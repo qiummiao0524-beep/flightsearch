@@ -1,8 +1,9 @@
-"""航班搜索服务 - 调用二方搜索接口"""
+import json
+import os
 import asyncio
 import httpx
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from app.core.config import settings
 
 
@@ -12,6 +13,33 @@ class FlightSearchService:
     def __init__(self):
         self.api_url = settings.SEARCH_API_URL
         self.api_token = settings.SEARCH_API_TOKEN
+        self.city_mapping = self._load_city_mapping()
+    
+    def _load_city_mapping(self) -> dict:
+        """加载城市映射数据"""
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "city_mapping.json")
+        try:
+            with open(data_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading city mapping: {e}")
+            return {"cities": []}
+
+    def get_city_code_by_airport(self, airport_code: str) -> str:
+        """根据机场码获取对应的城市码"""
+        if not airport_code:
+            return airport_code
+            
+        for city in self.city_mapping.get("cities", []):
+            # 如果本身就是城市主代码，直接返回
+            if city.get("city_code") == airport_code:
+                return airport_code
+            # 检查是否在该城市的机场列表中
+            for airport in city.get("airports", []):
+                if airport.get("code") == airport_code:
+                    return city.get("city_code")
+        
+        return airport_code
     
     def _get_headers(self) -> dict:
         """获取请求头"""
@@ -45,22 +73,22 @@ class FlightSearchService:
         if travel_type == "OW":  # 单程
             req_user_lines = [{
                 "index": 1,
-                "depCityCode": trip_info.get("departure_code"),
-                "arrCityCode": trip_info.get("arrival_code"),
+                "depCityCode": self.get_city_code_by_airport(trip_info.get("departure_code")),
+                "arrCityCode": self.get_city_code_by_airport(trip_info.get("arrival_code")),
                 "depDate": trip_info.get("dep_date")
             }]
         elif travel_type == "RT":  # 往返
             req_user_lines = [
                 {
                     "index": 1,
-                    "depCityCode": trip_info.get("departure_code"),
-                    "arrCityCode": trip_info.get("arrival_code"),
+                    "depCityCode": self.get_city_code_by_airport(trip_info.get("departure_code")),
+                    "arrCityCode": self.get_city_code_by_airport(trip_info.get("arrival_code")),
                     "depDate": trip_info.get("dep_date")
                 },
                 {
                     "index": 2,
-                    "depCityCode": trip_info.get("arrival_code"),
-                    "arrCityCode": trip_info.get("departure_code"),
+                    "depCityCode": self.get_city_code_by_airport(trip_info.get("arrival_code")),
+                    "arrCityCode": self.get_city_code_by_airport(trip_info.get("departure_code")),
                     "depDate": trip_info.get("return_date")
                 }
             ]
@@ -91,10 +119,9 @@ class FlightSearchService:
         if not trace_id:
             trace_id = f"AI{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}"
         
-        return {
+        res = {
             "travelType": travel_type,
             "reqUserLines": req_user_lines,
-            "userLineIndex": user_line_index,
             "selectedLines": selected_lines or [],
             "reqPassengers": req_passengers,
             "bookingClass": booking_class,
@@ -128,14 +155,20 @@ class FlightSearchService:
             },
             "ext": {}
         }
+        
+        # Only include userLineIndex if explicitly specified or single-leg query
+        if user_line_index is not None and travel_type == "OW":
+            res["userLineIndex"] = user_line_index
+            
+        return res
     
-    def transform_response(self, resp: dict) -> list:
-        req_passengers_list = resp.get("data", resp).get("req", {}).get("userCommonReq", {}).get("reqPassengers", [])
-        req_passengers = {p.get("passengerType", "ADT"): int(p.get("passengerCount", 1)) for p in req_passengers_list}
+    def transform_response(self, resp: dict, travel_type_override: str = None, passengers: list = None) -> list:
         """将二方接口响应转换为前端展示格式
         
         Args:
             resp: 搜索接口响应
+            travel_type_override: 强制指定的行程类型
+            passengers: 原始请求的乘客信息列表
             
         Returns:
             航班列表
@@ -145,7 +178,13 @@ class FlightSearchService:
         if not resp.get("success") or not resp.get("route"):
             return flights
         
-        req_travel_type = resp.get("data", resp).get("req", {}).get("userCommonReq", {}).get("travelType", "OW")
+        # 提取行程类型，优先使用覆盖值，其次从响应中找
+        req_data = resp.get("data", resp).get("req", {})
+        req_travel_type = travel_type_override or req_data.get("userCommonReq", {}).get("travelType")
+        
+        if not req_travel_type:
+            # 兜底：从原始请求体中尝试获取
+            req_travel_type = req_data.get("travelType", "OW")
         
         route = resp["route"]
         segments_map = route.get("segments", {})
@@ -198,44 +237,59 @@ class FlightSearchService:
             
             # 提取价格
             total_price_quote = price_quote.get("totalPrice", {})
+            adult_price = total_price_quote.get("adultPrice", {})
+            child_price = total_price_quote.get("childPrice", {})
+            infant_price = total_price_quote.get("infantPrice", {})
             
-            total_amount = 0
-            total_base = 0
-            total_tax = 0
-            passenger_prices = []
+            # 获取请求的乘客信息
+            if passengers:
+                passenger_counts = {p.get("type", "ADT"): p.get("count", 1) for p in passengers}
+            else:
+                req_passengers = req_data.get("userCommonReq", {}).get("reqPassengers", [{"passengerType": "ADT", "passengerCount": "1"}])
+                passenger_counts = {p["passengerType"]: int(p.get("passengerCount", 0)) for p in req_passengers}
             
-            # 使用提取的请求乘客信息结构，如果没有就使用默认成人1
-            pas_map = req_passengers if req_passengers else {"ADT": 1}
+            total_price_grand = 0
+            total_base_grand = 0
+            total_tax_grand = 0
+            price_breakdown = []
             
-            for ptype, count in pas_map.items():
+            for p_type, count in passenger_counts.items():
                 if count <= 0: continue
-                key = f"{ptype.lower()}Price" if ptype != "ADT" else "adultPrice"
-                p_price = total_price_quote.get(key, {})
-                if not p_price and ptype == "ADT":
-                    p_price = total_price_quote.get("adultPrice", {})
-                if p_price:
-                    base = p_price.get("price", 0)
-                    tax = p_price.get("tax", 0)
-                    total = p_price.get("totalPrice", base + tax)
-                    total_base += base * count
-                    total_tax += tax * count
-                    total_amount += total * count
-                    passenger_prices.append({
-                        "type": ptype,
-                        "count": count,
-                        "base": str(base),
-                        "tax": str(tax),
-                        "total": str(total)
-                    })
+                
+                if p_type == "ADT":
+                    p_detail = adult_price
+                elif p_type == "CHD":
+                    p_detail = child_price
+                elif p_type == "INF":
+                    p_detail = infant_price
+                else:
+                    p_detail = adult_price # Fallback
+                
+                if p_detail:
+                    try:
+                        p_total = int(float(p_detail.get("totalPrice", 0)))
+                        p_base = int(float(p_detail.get("price", 0)))
+                        p_tax = int(float(p_detail.get("tax", 0)))
+                    except (ValueError, TypeError):
+                        p_total, p_base, p_tax = 0, 0, 0
                     
-            if total_amount == 0:
-                adult_price = total_price_quote.get("adultPrice", {})
-                base = adult_price.get("price", 0)
-                tax = adult_price.get("tax", 0)
-                total = adult_price.get("totalPrice", base + tax)
-                total_base = base
-                total_tax = tax
-                total_amount = total
+                    total_price_grand += p_total * count
+                    total_base_grand += p_base * count
+                    total_tax_grand += p_tax * count
+                    
+                    price_breakdown.append({
+                        "type": p_type,
+                        "count": count,
+                        "base": str(p_base),
+                        "tax": str(p_tax),
+                        "total": str(p_total)
+                    })
+
+            # 如果没有提取到任何明细，兜底使用单人成人价
+            if not price_breakdown:
+                total_price_grand = adult_price.get("totalPrice", 0)
+                total_base_grand = adult_price.get("price", 0)
+                total_tax_grand = adult_price.get("tax", 0)
             
             cabin_class_code = price_quote.get("cabinClassCode", "Y")
             cabin_name_map = {
@@ -255,12 +309,12 @@ class FlightSearchService:
                 "cabin_name": cabin_name_map.get(cabin_class_code, "经济舱"),
                 "cabin_num": price_quote.get("cabinNum", ""),
                 "price": {
-                    "total": str(total_amount),
-                    "base": str(total_base),
-                    "tax": str(total_tax),
+                    "total": str(total_price_grand),
+                    "base": str(total_base_grand),
+                    "tax": str(total_tax_grand),
                     "foreign_total": total_price_quote.get("adultPrice", {}).get("foreignTotalPrice", "0"),
                     "currency": "CNY",
-                    "passenger_prices": passenger_prices
+                    "passenger_prices": price_breakdown
                 },
                 "services": [],
                 "labels": trip_product.get("labels", [])
@@ -359,8 +413,8 @@ class FlightSearchService:
                     # 检查是否完成
                     finished = resp_data.get("finished", False)
                     if finished:
-                        # 使用最后一次的航班结果
-                        flights = self.transform_response(resp_data)
+                        # 使用最后一次的航班结果，传入 travel_type 确保识别一致
+                        flights = self.transform_response(resp_data, travel_type_override=trip_info.get("travel_type"), passengers=trip_info.get("passengers"))
                         duration = (datetime.now() - start_time).total_seconds()
                         if settings.DEBUG:
                             print(f"[Search] 搜索完成, 共 {len(flights)} 个航班, 耗时 {duration:.2f}s")
@@ -382,7 +436,7 @@ class FlightSearchService:
                         await asyncio.sleep(0.5)
                 
                 # 达到最大重试次数，返回最后一次的结果
-                flights = self.transform_response(last_resp_data) if last_resp_data else []
+                flights = self.transform_response(last_resp_data, travel_type_override=trip_info.get("travel_type"), passengers=trip_info.get("passengers")) if last_resp_data else []
                 return {
                     "success": True,
                     "flights": flights,
@@ -403,7 +457,9 @@ class FlightSearchService:
         flights: list,
         airline_code: str = None,
         flight_no: str = None,
-        direct_only: bool = False
+        direct_only: bool = False,
+        dep_airport_code: str = None,
+        arr_airport_code: str = None
     ) -> list:
         """过滤航班
         
@@ -412,11 +468,25 @@ class FlightSearchService:
             airline_code: 航司代码过滤
             flight_no: 航班号过滤
             direct_only: 仅直飞
+            dep_airport_code: 出发机场码过滤
+            arr_airport_code: 到达机场码过滤
         """
         result = flights
         
         if direct_only:
             result = [f for f in result if not f.get("is_transfer")]
+        
+        if dep_airport_code:
+            result = [
+                f for f in result 
+                if f.get("segments") and f["segments"][0].get("departure", {}).get("code") == dep_airport_code
+            ]
+            
+        if arr_airport_code:
+            result = [
+                f for f in result 
+                if f.get("segments") and f["segments"][-1].get("arrival", {}).get("code") == arr_airport_code
+            ]
         
         if airline_code:
             result = [

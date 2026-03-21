@@ -3,8 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-# 加载环境变量
-load_dotenv()
+# 加载环境变量（override=True：.env 优先级高于 shell 环境变量）
+load_dotenv(override=True)
 
 from app.core.config import settings
 from app.api.chat import router as chat_router

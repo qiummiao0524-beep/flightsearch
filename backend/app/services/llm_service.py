@@ -1,8 +1,9 @@
-"""LLM 服务 - 使用 Claude 进行意图解析"""
+"""LLM 服务 - 使用 Anthropic 接口进行意图解析"""
 import json
+import os
 import re
 from datetime import datetime, timedelta
-from openai import AsyncOpenAI
+import anthropic
 from app.core.config import settings
 
 # 加载城市映射数据
@@ -361,70 +362,68 @@ SYSTEM_PROMPT = f"""你是航班搜索助手，负责从用户输入中提取搜
 
 
 class LLMService:
-    """LLM 服务类 (DeepSeek 版)"""
-    
+    """LLM 服务类 - 根据 LLM_PROTOCOL 动态选择协议
+    - anthropic: 内网 oneai.17usoft.com（原生 Anthropic 协议）
+    - openai:    公网 DeepSeek / 其他 OpenAI 兼容接口
+    """
+
     def __init__(self):
-        self.client = AsyncOpenAI(
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url=settings.DEEPSEEK_API_URL
+        # 直接从 settings（.env）读取，不再优先读 shell 环境变量
+        # shell 里的 ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN / ANTHROPIC_MODEL
+        # 是给 Anthropic SDK 官方工具的，会干扰本项目配置，不使用
+        api_key = settings.ANTHROPIC_API_KEY or settings.DEEPSEEK_API_KEY
+        base_url = settings.ANTHROPIC_API_URL
+        model = settings.ANTHROPIC_MODEL
+
+        # LLM_PROTOCOL: anthropic（内网 oneai）或 openai（公网 DeepSeek）
+        self.protocol = os.environ.get("LLM_PROTOCOL", "openai").lower()
+
+        import httpx
+        proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or None
+        http_client = httpx.AsyncClient(
+            verify=False,    # 跳过 SSL 证书校验（公司内网私有 CA）
+            trust_env=True,  # 读取系统代理环境变量
+            proxy=proxy,
         )
-        self.model = settings.DEEPSEEK_MODEL
-    
+
+        if self.protocol == "anthropic":
+            import anthropic
+            self.client = anthropic.AsyncAnthropic(
+                api_key=api_key,
+                base_url=base_url,
+                http_client=http_client,
+            )
+        else:
+            from openai import AsyncOpenAI
+            self.client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=base_url,
+                http_client=http_client,
+            )
+
+        self.model = model
+        print(f"[LLMService] protocol={self.protocol}, model={self.model}, url={base_url}")
+
     async def parse_intent(
-        self, 
-        user_message: str, 
+        self,
+        user_message: str,
         history: list = None,
         current_trip_info: dict = None
     ) -> dict:
-        """解析用户意图
-        
-        Args:
-            user_message: 用户消息
-            history: 对话历史
-            current_trip_info: 当前累积的行程信息
-            
-        Returns:
-            解析结果 dict
-        """
-        messages = []
-        
-        # 添加历史消息（简化版本）
-        if history:
-            for msg in history[-6:]:  # 只保留最近6条
-                if msg.get("role") == "user":
-                    messages.append({"role": "user", "content": msg.get("content", "")})
-                elif msg.get("role") == "assistant":
-                    messages.append({"role": "assistant", "content": msg.get("content", "")})
-        
-        # 构建当前消息
+        """解析用户意图（根据协议分支调用不同 SDK）"""
         current_context = ""
         if current_trip_info:
             current_context = f"\n\n当前已收集的信息：{json.dumps(current_trip_info, ensure_ascii=False)}\n请基于已有信息继续补充。"
-        
-        messages.append({
-            "role": "user",
-            "content": f"{user_message}{current_context}"
-        })
-        
+        user_content = f"{user_message}{current_context}"
+
         try:
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    *messages
-                ],
-                max_tokens=2000,
-                temperature=0.7,
-                stream=False
-            )
-            
-            # 提取响应内容
-            content = response.choices[0].message.content
-            
-            # 解析 JSON
-            result = self._extract_json(content)
-            return result
-            
+            if self.protocol == "anthropic":
+                content = await self._call_anthropic(user_content, history)
+            else:
+                content = await self._call_openai(user_content, history)
+
+            return self._extract_json(content)
+
         except Exception as e:
             import traceback
             print(f"DEBUG: LLM Parse Intent failed for message: {user_message}")
@@ -436,6 +435,41 @@ class LLMService:
                 "trip_info": current_trip_info,
                 "clarify": None
             }
+
+    async def _call_anthropic(self, user_content: str, history: list) -> str:
+        """调用 Anthropic 原生协议（内网 oneai）"""
+        messages = []
+        if history:
+            for msg in history[-6:]:
+                if msg.get("role") in ("user", "assistant"):
+                    messages.append({"role": msg["role"], "content": msg.get("content", "")})
+        messages.append({"role": "user", "content": user_content})
+
+        response = await self.client.messages.create(
+            model=self.model,
+            system=SYSTEM_PROMPT,
+            messages=messages,
+            max_tokens=2000,
+            temperature=0.7,
+        )
+        return response.content[0].text
+
+    async def _call_openai(self, user_content: str, history: list) -> str:
+        """调用 OpenAI 兼容协议（DeepSeek 等公网）"""
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if history:
+            for msg in history[-6:]:
+                if msg.get("role") in ("user", "assistant"):
+                    messages.append({"role": msg["role"], "content": msg.get("content", "")})
+        messages.append({"role": "user", "content": user_content})
+
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            max_tokens=2000,
+            temperature=0.7,
+        )
+        return response.choices[0].message.content
     
     def _extract_json(self, content: str) -> dict:
         """从响应中提取 JSON"""
