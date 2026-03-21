@@ -423,12 +423,15 @@ function getFlightNos(segments: any[]): string {
   border-radius: 12px;
   padding: 12px;
   transition: all 0.2s;
+  position: relative;
+  z-index: 1;
 }
 
 .flight-item:hover {
   background: #f0f0f0;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 10;
 }
 
 .flight-main {

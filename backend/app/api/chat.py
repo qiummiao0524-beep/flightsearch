@@ -211,11 +211,20 @@ async def chat(request: ChatRequest):
                 wants_transfer = bool(session["trip_info"].get("transfer_cities") or (flight_no and "/" in flight_no))
                 direct_only = not wants_transfer
                 
+                # 检查是否需要按机场过滤
+                dep_code_input = session["trip_info"].get("departure_code")
+                arr_code_input = session["trip_info"].get("arrival_code")
+                
+                dep_airport = dep_code_input if dep_code_input != flight_search_service.get_city_code_by_airport(dep_code_input) else None
+                arr_airport = arr_code_input if arr_code_input != flight_search_service.get_city_code_by_airport(arr_code_input) else None
+
                 filtered_flights = flight_search_service.filter_flights(
                     raw_flights,
                     airline_code=airline_code,
                     flight_no=flight_no,
-                    direct_only=direct_only
+                    direct_only=direct_only,
+                    dep_airport_code=dep_airport,
+                    arr_airport_code=arr_airport
                 )
                 
                 if filtered_flights:

@@ -1,8 +1,9 @@
-"""航班搜索服务 - 调用二方搜索接口"""
+import json
+import os
 import asyncio
 import httpx
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from app.core.config import settings
 
 
@@ -12,6 +13,33 @@ class FlightSearchService:
     def __init__(self):
         self.api_url = settings.SEARCH_API_URL
         self.api_token = settings.SEARCH_API_TOKEN
+        self.city_mapping = self._load_city_mapping()
+    
+    def _load_city_mapping(self) -> dict:
+        """加载城市映射数据"""
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "city_mapping.json")
+        try:
+            with open(data_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading city mapping: {e}")
+            return {"cities": []}
+
+    def get_city_code_by_airport(self, airport_code: str) -> str:
+        """根据机场码获取对应的城市码"""
+        if not airport_code:
+            return airport_code
+            
+        for city in self.city_mapping.get("cities", []):
+            # 如果本身就是城市主代码，直接返回
+            if city.get("city_code") == airport_code:
+                return airport_code
+            # 检查是否在该城市的机场列表中
+            for airport in city.get("airports", []):
+                if airport.get("code") == airport_code:
+                    return city.get("city_code")
+        
+        return airport_code
     
     def _get_headers(self) -> dict:
         """获取请求头"""
@@ -45,22 +73,22 @@ class FlightSearchService:
         if travel_type == "OW":  # 单程
             req_user_lines = [{
                 "index": 1,
-                "depCityCode": trip_info.get("departure_code"),
-                "arrCityCode": trip_info.get("arrival_code"),
+                "depCityCode": self.get_city_code_by_airport(trip_info.get("departure_code")),
+                "arrCityCode": self.get_city_code_by_airport(trip_info.get("arrival_code")),
                 "depDate": trip_info.get("dep_date")
             }]
         elif travel_type == "RT":  # 往返
             req_user_lines = [
                 {
                     "index": 1,
-                    "depCityCode": trip_info.get("departure_code"),
-                    "arrCityCode": trip_info.get("arrival_code"),
+                    "depCityCode": self.get_city_code_by_airport(trip_info.get("departure_code")),
+                    "arrCityCode": self.get_city_code_by_airport(trip_info.get("arrival_code")),
                     "depDate": trip_info.get("dep_date")
                 },
                 {
                     "index": 2,
-                    "depCityCode": trip_info.get("arrival_code"),
-                    "arrCityCode": trip_info.get("departure_code"),
+                    "depCityCode": self.get_city_code_by_airport(trip_info.get("arrival_code")),
+                    "arrCityCode": self.get_city_code_by_airport(trip_info.get("departure_code")),
                     "depDate": trip_info.get("return_date")
                 }
             ]
@@ -428,7 +456,9 @@ class FlightSearchService:
         flights: list,
         airline_code: str = None,
         flight_no: str = None,
-        direct_only: bool = False
+        direct_only: bool = False,
+        dep_airport_code: str = None,
+        arr_airport_code: str = None
     ) -> list:
         """过滤航班
         
@@ -437,11 +467,25 @@ class FlightSearchService:
             airline_code: 航司代码过滤
             flight_no: 航班号过滤
             direct_only: 仅直飞
+            dep_airport_code: 出发机场码过滤
+            arr_airport_code: 到达机场码过滤
         """
         result = flights
         
         if direct_only:
             result = [f for f in result if not f.get("is_transfer")]
+        
+        if dep_airport_code:
+            result = [
+                f for f in result 
+                if f.get("segments") and f["segments"][0].get("departure", {}).get("code") == dep_airport_code
+            ]
+            
+        if arr_airport_code:
+            result = [
+                f for f in result 
+                if f.get("segments") and f["segments"][-1].get("arrival", {}).get("code") == arr_airport_code
+            ]
         
         if airline_code:
             result = [
