@@ -1,76 +1,96 @@
 # AI 航班搜索测试提效系统
 
-基于 AI 对话的航班搜索工具，通过自然语言交互快速获取航班数据，支持 Mock 数据生成。
+基于 AI 对话的航班搜索与测试辅助工具。通过自然语言交互（如“明天上海到香港的微信H5渠道”），即可快速解析意图、查询多方接口、并支持在无实飞数据时自动生成结构化的 Mock 航班数据供业务测试使用。
 
-## 项目结构
+本项目深度集成了 **AI Agent 研发协同架构**，从零开始由大模型主导设计、拆解、编码与自我验证迭代。
+
+## 🌟 主要特性 (Key Features)
+
+### 1. 语义化航班解析
+系统内置了基于 Anthropic/DeepSeek 模型驱动的意图解析层，支持复杂的自然语言解析：
+- **日期智能推算**：理解“明天”、“下周五”、“2月15号”等时间口语。
+- **多维度查询支持**：支持单程/往返/中转、指定航司、指定航班号。
+- **多乘客与多舱位**：提取不同乘客结构（成人/儿童/婴儿），识别不同舱位（经济舱、头等舱等）。
+- **渠道控制**：通过配置字典(`flatType.json`)精确支持各种渠道出票平台（如微信、同程小程序、APP等）查询映射。
+
+### 2. 自适应澄清与容错
+- 针对用户提问缺失关键参数时（如没给日期或未指定具体机场），自动抛出携带选项的澄清卡片。
+- 支持与用户多回合进行状态记忆 (Session History) 及意图补全。
+
+### 3. 真实数据与 Mock 智能降级
+- **实时引擎**：调用直飞、中转二方业务搜索引擎，展示详尽的航段和票价组成。
+- **断路 Mock callback**：当查询特定生僻条件或不存在的航班时（或出于特意指定），后端智能拦截并组合构造一份以假乱真的底层航班 Mock 数据返回给前端。
+
+### 4. Agentic 研发协同规范
+项目内嵌了专用的 `/orchestrator` 规范库，用以驾驭 AI Coding Agent 的状态：
+- 分为 `ALWAYS/`（核心环境常量、加载流、规范）与 `PROGRAMS/`（一个个微型需求闭环）。
+- 使得每一次功能迭代（如 `P-2026-007` 渠道映射更新）都具有完整的立项、分析、执行、移交流，杜绝大模型上下文遗忘。
+
+## 📁 项目结构 (Project Structure)
 
 ```
 flightsearch/
-├── backend/                 # 后端 (Python FastAPI)
-│   ├── app/
-│   │   ├── api/            # API 路由
-│   │   ├── core/           # 核心配置
-│   │   ├── schemas/        # 数据模型
-│   │   ├── services/       # 业务服务
-│   │   └── data/           # 静态数据
-│   ├── main.py             # 入口文件
-│   ├── pyproject.toml      # Poetry 依赖
-│   └── .env                # 环境配置
+├── AGENTS.md                  # AI 专属提示与运行协议
+├── orchestrator/              # AI Agent 研发协作生命周期管理
+│   ├── ALWAYS/                # 上下文引导、开发流程预设与常量配置
+│   │   ├── BOOT.md            
+│   │   ├── CORE.md            
+│   │   ├── DEV-FLOW.md        
+│   ├── PROGRAMS/              # 单一特性的需求迭代跟踪记录 
 │
-├── frontend/               # 前端 (Vue 3 + TypeScript)
+├── backend/                   # 后端服务 (Python FastAPI)
+│   ├── app/
+│   │   ├── api/chat.py        # 对话及流式通信核心控制层
+│   │   ├── schemas/           # Pydantic 进出参协议模型
+│   │   ├── services/          # LLM 意图服务、航班查询、Mock 打底服务
+│   │   └── data/              # 城市映射、航司、渠道(flatType)字典
+│   ├── main.py                
+│   ├── pyproject.toml         
+│   └── .env                   
+│
+├── frontend/                  # 前端层 (Vue 3 + TypeScript)
 │   ├── src/
-│   │   ├── api/           # API 调用
-│   │   ├── components/    # 组件
-│   │   ├── stores/        # 状态管理
-│   │   └── types/         # 类型定义
-│   ├── package.json
-│   └── .env               # 环境配置
+│   │   ├── api/               # Axios 实例模块
+│   │   ├── components/        # ChatBox, TripCard, ClarifyCard 等组件积木
+│   │   └── stores/            # 基于 Pinia 的聊天流管理
+│   └── package.json           
 │
 └── README.md
 ```
 
-## 技术栈
+## 🛠️ 技术栈 (Tech Stack)
 
-### 后端
-- Python 3.10+
-- FastAPI
-- Claude API (通过公司内部代理)
-- httpx (异步 HTTP 客户端)
-- Poetry (依赖管理)
+**后端 (Backend)**: 
+- `Python 3.10+` + `FastAPI` 
+- `Anthropic/OpenAI SDK` 
+- `httpx` / `Poetry`
 
-### 前端
-- Node.js 20.19+ 或 22.12+ (Vite 运行依赖)
-- Vue 3 + TypeScript
-- Vite
-- Pinia (状态管理)
-- Element Plus (UI 组件库)
-- Axios
+**前端 (Frontend)**:
+- `Vue 3` + `TypeScript` + `Vite`
+- `Pinia` 状态管理
+- `Element Plus` 基础组件交互
 
-## 快速开始
+## 🚀 快速开始 (Getting Started)
 
-### 1. 配置后端
+### 1. 配置并启动后端
 
 ```bash
+# cd /Users/qiumiaomiao/Documents/AI/flightsearch/backend
 cd backend
 
 # 安装依赖
 poetry install
 
-# 配置环境变量（编辑 .env 文件）
-# 启动后端服务
+# 配置环境变量（编辑 .env 文件，如果需要调整 LLM 网络可以运行 `.agents/skills` 中的切换脚本）
+# 启动后端服务 (热更新模式)
 poetry run python main.py
-
-cd /Users/qiumiaomiao/Documents/AI/flightsearch/backend
-poetry run python main.py
-
 ```
+> 后端服务运行在 `http://localhost:8000`
 
-
-后端服务运行在 http://localhost:8000
-
-### 2. 配置前端
+### 2. 配置并启动前端
 
 ```bash
+# cd /Users/qiumiaomiao/Documents/AI/flightsearch/frontend
 cd frontend
 
 # 安装依赖
@@ -78,163 +98,53 @@ npm install
 
 # 启动开发服务器
 npm run dev
+```
+> 前端服务运行在 `http://localhost:5173`
 
-# 1. 刷新一下环境变量配置（只需执行一次）
-source ~/.zshrc
-# 2. 然后启动前端即可（不会再报错了）
-cd /Users/qiumiaomiao/Documents/AI/flightsearch/frontend
-npm run dev
+## ⚙️ 环境配置说明
+
+配置支持同时对接**公网 (DeepSeek)**和**内网 (Authropic Sonnet)** 环境：
+
+**后端配置: `backend/.env`**
+```bash
+# 二方搜索及Mock网关
+SEARCH_API_URL=http://...
+MOCK_API_URL=http://...
+
+# LLM 密钥与路由 (支持通过 python scripts 自动切换)
+ANTHROPIC_API_KEY=sk-...
+ANTHROPIC_API_URL=https://api.deepseek.com
+ANTHROPIC_MODEL=deepseek-chat
+LLM_PROTOCOL=openai  # 或 anthropic
 ```
 
-
-前端服务运行在 http://localhost:5173
-
-## 配置说明
-
-### 后端配置 (backend/.env)
-
+**前端配置: `frontend/.env`**
 ```bash
-# 二方搜索接口配置
-SEARCH_API_URL=http://servicegw.qa.ly.com/gateway/iflight.java.searchfrontapi.uat/v1/search/simplifysearch/
-SEARCH_API_TOKEN=696d839f-672e-4476-88db-78234d905c0a
-
-# 二方 Mock 接口配置
-MOCK_API_URL=http://dispatchmng.uat.ie.17usoft.com/service/wiki
-
-# Claude API 配置（使用公司内部代理）
-ANTHROPIC_API_KEY=sk-xxx
-ANTHROPIC_API_URL=https://oneai.17usoft.com/anthropic
-ANTHROPIC_MODEL=claude-3-7-sonnet
-
-# 调试模式
-DEBUG=true
-```
-
-### 前端配置 (frontend/.env)
-
-```bash
-# 后端 API 地址
 VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
-## 使用方式
+## 📝 系统核心流程 (Architecture Flow)
 
-1. 在对话框中输入您的出行需求，例如：
-   - "帮我查明天上海到香港的机票"
-   - "2月15日北京飞东京，两个大人一个小孩"
-   - "查一下 MU5101 航班"
-
-2. AI 助手会解析您的需求，如果信息不完整会询问澄清（如选择出发机场）
-
-3. 信息完整后，系统会调用搜索接口获取航班数据
-
-4. 如果搜索无结果，系统会自动 Mock 数据并重新搜索
-
-## 系统流程
-
-```
-用户输入 → LLM 意图解析 → 信息完整？
-                              ↓ 否
-                         返回澄清问题
-                              ↓ 是
-                         调用搜索接口（轮询直到 finished=true）
-                              ↓
-                         有结果？ → 是 → 返回航班列表
-                              ↓ 否
-                         调用 Mock 接口生成数据
-                              ↓
-                         再次调用搜索接口
-                              ↓
-                         返回结果
+```mermaid
+graph TD
+    A[用户输入文本，如: "明晚赴港"] --> B[LLM 意图解析服务]
+    B --> C{必填基础信息是否完整？}
+    C -- 否 --> D[抛出 Clarify 意图，下发表单选项询问用户]
+    D --> E[用户响应补充内容]
+    E --> B
+    
+    C -- 是 --> F[提取 `TripInfo`: 出发、到达、日期、指定渠道等]
+    F --> G[调用真实二方航班搜索引擎]
+    G --> H{引擎是否返回对应要求航段?}
+    H -- 是 --> I[实时渲染 TripCard 真实航班列表]
+    
+    H -- 否 --> J[触发 Mock Flight 服务级联降级]
+    J --> K[基于请求参数自动造出合理的行程图与运价 `flatType`]
+    K --> L[渲染带有 Mock 打底标识的航班列表页供测试使用]
 ```
 
-## API 接口
+## 🔧 常见维护操作
 
-### POST /api/chat
-对话接口
-
-请求：
-```json
-{
-  "session_id": "可选，首次对话为空",
-  "message": "用户消息",
-  "selected_option": "可选，用户选择的澄清选项"
-}
-```
-
-响应：
-```json
-{
-  "session_id": "会话ID",
-  "type": "clarify|result|error",
-  "message": "响应消息",
-  "trip_info": {
-    "travel_type": "OW",
-    "departure": {"city": "上海", "code": "PVG"},
-    "arrival": {"city": "香港", "code": "HKG"},
-    "dep_date": "2026-02-11",
-    "passengers": [{"type": "ADT", "count": 1}],
-    "cabin_class": "Y"
-  },
-  "clarify": {
-    "field": "departure_code",
-    "question": "上海有多个机场，请选择：",
-    "options": [
-      {"label": "上海虹桥 (SHA)", "value": "SHA"},
-      {"label": "上海浦东 (PVG)", "value": "PVG"}
-    ]
-  },
-  "flights": [...],
-  "is_mocked": false
-}
-```
-
-### GET /api/session/{session_id}
-获取会话信息
-
-### POST /api/session/new
-创建新会话
-
-### GET /health
-健康检查
-
-## 开发说明
-
-### 添加新的城市/机场
-编辑 `backend/app/data/city_mapping.json`
-
-### 修改 LLM Prompt
-编辑 `backend/app/services/llm_service.py` 中的 `SYSTEM_PROMPT`
-
-### 调整搜索请求格式
-编辑 `backend/app/services/flight_search.py` 中的 `build_search_request`
-
-搜索接口采用轮询机制：
-- 首次请求生成 traceId
-- 根据响应中的 sleepTime 等待后再次请求
-- 使用相同的 traceId 直到 finished=true
-
-### 调整 Mock 请求格式
-编辑 `backend/app/services/flight_mock.py` 中的 `build_mock_request`
-
-Mock 接口请求格式：
-```json
-{
-  "requestBody": "航班数据 JSON 字符串",
-  "wikiUrl": "/callBack/entity",
-  "version": "1.0.0",
-  "serviceName": "callBack"
-}
-```
-
-## 局域网访问
-
-如需让其他人通过局域网访问测试：
-
-1. 修改 `frontend/.env` 中的 API 地址为局域网 IP
-2. 修改 `backend/app/core/config.py` 中的 CORS_ORIGINS 添加局域网地址
-3. 前端已配置 `host: '0.0.0.0'`，会自动监听所有网卡
-
-访问地址示例：
-- 前端: http://10.181.22.2:5173
-- 后端: http://10.181.22.2:8000
+- **新增测试渠道**：修改 `backend/app/data/flatType.json` 中的选项，系统热更新后即刻生效，AI 便能自动提取该渠道意图。
+- **调整机场数据**：修改 `backend/app/data/city_mapping.json`。
+- **测试局域网联调**：修改 `frontend/.env` 的基建 IP 并更新 `backend/app/core/config.py` 中的 `CORS_ORIGINS`。
