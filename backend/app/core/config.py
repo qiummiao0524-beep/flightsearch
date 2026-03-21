@@ -15,18 +15,18 @@ class Settings(BaseSettings):
     SEARCH_API_TOKEN: str = ""  # Labrador-Token
     MOCK_API_URL: str = "http://dispatchmng.uat.ie.17usoft.com/service/wiki"
     
-    # DeepSeek API 配置 (OpenAI 兼容)
+    # LLM API 配置 (OpenAI 兼容)
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_API_URL: str = "https://oneai.17usoft.com/anthropic"
+    ANTHROPIC_MODEL: str = "qwen3-5-plus"
+
+    # 兼容旧变量名（保持向后兼容）
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_API_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL: str = "deepseek-chat"
     
     # CORS 配置
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:5173", 
-        "http://127.0.0.1:5173",
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000"
-    ]
+    CORS_ORIGINS: list[str] = ["*"]
     
     model_config = {
         "env_file": ".env",
