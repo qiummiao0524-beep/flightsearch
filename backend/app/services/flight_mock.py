@@ -12,73 +12,6 @@ class FlightMockService:
     def __init__(self):
         self.api_url = settings.MOCK_API_URL
 
-    def _build_price_detail(self, price: int, tax: int, passengers: list) -> dict:
-            """构建多乘客价格明细"""
-            price_detail = {
-                "abnormal": False,
-                "adultPrice": {
-                    "QValue": 0,
-                    "bidMaxPrice": price,
-                    "bidMinPrice": price,
-                    "enginePrice": price,
-                    "gdsPrice": {"QValue": 0.0, "currency": "CNY", "netPrice": float(price), "netTax": float(tax)},
-                    "merchantPrice": price,
-                    "netPrice": price,
-                    "passengerType": "ADT",
-                    "price": price,
-                    "tax": tax,
-                    "totalPrice": price + tax
-                }
-            }
-            
-            all_price = 0
-            for p in passengers:
-                ptype = p.get("type", "ADT")
-                count = p.get("count", 0)
-                if count <= 0:
-                    continue
-                    
-                if ptype == "ADT":
-                    all_price += (price + tax) * count
-                elif ptype == "CHD":
-                    child_price = int(price * 0.75)
-                    child_tax = int(tax / 2)
-                    price_detail["childPrice"] = {
-                        "QValue": 0,
-                        "bidMaxPrice": child_price,
-                        "bidMinPrice": child_price,
-                        "enginePrice": child_price,
-                        "gdsPrice": {"QValue": 0.0, "currency": "CNY", "netPrice": float(child_price), "netTax": float(child_tax)},
-                        "merchantPrice": child_price,
-                        "netPrice": child_price,
-                        "passengerType": "CHD",
-                        "price": child_price,
-                        "tax": child_tax,
-                        "totalPrice": child_price + child_tax
-                    }
-                    all_price += (child_price + child_tax) * count
-                elif ptype == "INF":
-                    infant_price = int(price * 0.1)
-                    infant_tax = 0
-                    price_detail["infantPrice"] = {
-                        "QValue": 0,
-                        "bidMaxPrice": infant_price,
-                        "bidMinPrice": infant_price,
-                        "enginePrice": infant_price,
-                        "gdsPrice": {"QValue": 0.0, "currency": "CNY", "netPrice": float(infant_price), "netTax": float(infant_tax)},
-                        "merchantPrice": infant_price,
-                        "netPrice": infant_price,
-                        "passengerType": "INF",
-                        "price": infant_price,
-                        "tax": infant_tax,
-                        "totalPrice": infant_price + infant_tax
-                    }
-                    all_price += (infant_price + infant_tax) * count
-                    
-            price_detail["allPrice"] = all_price
-            return price_detail
-
-    
     def build_mock_request(
         self,
         dep_city: str,
@@ -125,16 +58,8 @@ class FlightMockService:
         multiplier = cabin_price_multipliers.get(cabin_class, 1.0)
         adjusted_price = int(price * multiplier)
         
-        # 决定子舱位代码（模拟）
+        # cabinNum 应为余座数，默认 "9"
         cabin_num = "9"
-        if cabin_class == "F":
-            cabin_num = "F"
-        elif cabin_class == "C":
-            cabin_num = "J"
-        elif cabin_class == "S":
-            cabin_num = "W"
-        else:
-            cabin_num = "Y"  # 经济舱随机选个比较常见的大舱位
         # 生成航班号（如未指定）
         if not flight_no:
             airline = airline_code or "9C"
@@ -176,41 +101,119 @@ class FlightMockService:
         passengers: list,
         segment_keys: list,
         airline: str,
-        is_rt: bool = False
+        is_rt: bool = False,
+        dep_city: str = "",
+        arr_city: str = "",
+        dep_date_fmt: str = "",
+        return_date_fmt: str = "",
+        flight_infos: list = None,
+        flight_key_overrides: list = None,
     ) -> tuple[int, dict]:
-        """构建多乘客价格详情块，分别返回 (总价, 价格详情对象)"""
+        """构建多乘客价格详情块，分别返回 (总价, 价格详情对象)
+
+        Args:
+            flight_infos: 用于 unitKey 的航班信息列表，每项 {"flightNo": ..., "depCity": ..., "arrCity": ...}
+            flight_key_overrides: 中转RT场景覆盖priceDetail内flightKeys（含正确的airLineIndex）
+        """
         tax = 100 if is_rt else 364
         if is_rt:
             base_price = base_price * 2
-            
+
+        # cabinNum 应为余座数，默认 "9"
+        if not cabin_num or not cabin_num.isdigit():
+            cabin_num = "9"
+
         price_detail = {
             "abnormal": False,
             "cabinClass": cabin_class,
             "cabinName": cabin_name,
             "cabinNum": cabin_num,
+            "fareType": "PRIVATE",
             "flightKeys": [],
             "merchantId": 317,
             "resourceType": "TCPL",
             "gds": "TCPL"
         }
-        
-        for idx, key in enumerate(segment_keys):
-            price_detail["flightKeys"].append({
-                "flightKey": key,
-                "index": idx + 1,
-                "mainSegment": idx == 0,
-                "airLineIndex": idx + 1 if is_rt else 1,
-                "mainAirline": airline if not is_rt or idx == 0 else ""
-            })
-            
+
+        # 构建 flightKeys
+        if flight_key_overrides:
+            price_detail["flightKeys"] = flight_key_overrides
+        else:
+            for idx, key in enumerate(segment_keys):
+                price_detail["flightKeys"].append({
+                    "flightKey": key,
+                    "index": idx + 1,
+                    "mainSegment": idx == 0,
+                    "airLineIndex": idx + 1 if is_rt else 1,
+                    "mainAirline": airline if not is_rt or idx == 0 else ""
+                })
+
+        # fareBasises: key 为 flightKeys 的 index（从 "1" 开始）
+        price_detail["fareBasises"] = {str(i + 1): "YOWCN" for i in range(len(segment_keys))}
+
+        # limiter 退改签信息
+        price_detail["limiter"] = {
+            "realWhite": True,
+            "refund": 2010030,
+            "refundGrade": 1,
+            "refundChangeFlag": "11",
+            "ticketTime": 5,
+            "ticketTimeStamp": int((datetime.now() + timedelta(hours=48)).timestamp() * 1000),
+            "timeRule": "0&48&H",
+            "airlineFreeRefund": False,
+            "freeRefund": "",
+            "freeChange": "",
+        }
+
+        # baggage 行李信息
+        price_detail["baggage"] = {
+            "allowedPieces": 1,
+            "allowedWeight": 23,
+            "weightType": 0,  # 0=计重制
+        }
+
+        # unitKey 构建
+        adult_count = 0
+        child_count = 0
+        infant_count = 0
+        for p in passengers:
+            p_type = p.get("type", "ADT")
+            count = p.get("count", 0)
+            if p_type == "ADT":
+                adult_count = count
+            elif p_type == "CHD":
+                child_count = count
+            elif p_type == "INF":
+                infant_count = count
+
+        travel_type = "RT" if is_rt else "OW"
+        flight_info_str = ""
+        if flight_infos:
+            parts = []
+            for fi in flight_infos:
+                parts.append(f"{fi.get('flightNo', '')}_{fi.get('depCity', '')}_{fi.get('arrCity', '')}")
+            flight_info_str = "_" + "_".join(parts)
+
+        if is_rt:
+            unit_key = f"317_{travel_type}_{dep_city}_{arr_city}_{dep_date_fmt}_{return_date_fmt}_{adult_count}_{child_count}_{infant_count}_{cabin_class}{flight_info_str}"
+        else:
+            unit_key = f"317_{travel_type}_{dep_city}_{arr_city}_{dep_date_fmt}_null_{adult_count}_{child_count}_{infant_count}_{cabin_class}{flight_info_str}"
+        price_detail["unitKey"] = unit_key
+
         total_price_all_passengers = 0
-        
+
+        ext_fees = [
+            {"currency": "CNY", "fixedValue": 0.0, "percent": 0.0, "type": "PRE_DISCOUNT", "value": 0.0},
+            {"currency": "CNY", "fixedValue": 0.0, "percent": 0.0, "type": "PRE_RETENTION", "value": 0.0},
+            {"currency": "CNY", "fixedValue": 0.0, "percent": 0.0, "type": "INVOICE_FEE", "value": 0.0},
+        ]
+
         for p in passengers:
             p_type = p.get("type", "ADT")
             count = p.get("count", 1)
             if count <= 0:
                 continue
-                
+
             if p_type == "ADT":
                 p_base = base_price
                 p_tax = tax
@@ -225,15 +228,16 @@ class FlightMockService:
                 key = "infantPrice"
             else:
                 continue
-                
+
             p_total = p_base + p_tax
             total_price_all_passengers += p_total * count
-            
+
             price_detail[key] = {
                 "QValue": 0,
                 "bidMaxPrice": p_base,
                 "bidMinPrice": p_base,
                 "enginePrice": p_base,
+                "extFees": ext_fees,
                 "gdsPrice": {"QValue": 0.0, "currency": "CNY", "netPrice": float(p_base), "netTax": float(p_tax)},
                 "merchantPrice": p_base,
                 "netPrice": p_base,
@@ -242,7 +246,7 @@ class FlightMockService:
                 "tax": p_tax,
                 "totalPrice": p_total
             }
-            
+
         price_detail["allPrice"] = total_price_all_passengers
         return total_price_all_passengers, price_detail
 
@@ -260,7 +264,7 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y",
+        cabin_num: str = "9",
         flat_type: str = "TC"
     ) -> dict:
         """构建单程 Mock 请求"""
@@ -323,13 +327,18 @@ class FlightMockService:
             passengers=passengers,
             segment_keys=[segment_key],
             airline=airline,
-            is_rt=False
+            is_rt=False,
+            dep_city=dep_city,
+            arr_city=arr_city,
+            dep_date_fmt=dep_date_fmt,
+            flight_infos=[{"flightNo": flight_no, "depCity": dep_city, "arrCity": arr_city}],
         )
         price_detail["id"] = price_detail_key
-        
+
         # 构建完整请求
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}"
-        
+        now_ts = str(int(datetime.now().timestamp() * 1000))
+
         return {
             "filter2": filter2,
             "flatType": flat_type,
@@ -364,13 +373,20 @@ class FlightMockService:
                     "minPrice": total_price,
                     "nearTakeoff": False,
                     "priceDetails": {price_detail_key: price_detail},
+                    "products": {
+                        "KSCP_ZYBQ": [price_detail_key],
+                        "TANG": [price_detail_key],
+                    },
                     "ext": {"PGS_FLOW_SWITCH": "1"}
                 }]
             },
             "ext": {
                 "searchType": "AUTOMATIC",
                 "FILTER2": filter2,
-                "flatType": flat_type
+                "flatType": flat_type,
+                "PGS_CALLBACK_TIMESTAMP": now_ts,
+                "GDS_CALLBACK_TIMESTAMP": now_ts,
+                "CALL_TIME": now_ts,
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -391,7 +407,7 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y",
+        cabin_num: str = "9",
         flat_type: str = "TC"
     ) -> dict:
         """构建往返 Mock 请求"""
@@ -495,12 +511,21 @@ class FlightMockService:
             passengers=passengers,
             segment_keys=[outbound_key, inbound_key],
             airline=airline,
-            is_rt=True
+            is_rt=True,
+            dep_city=dep_city,
+            arr_city=arr_city,
+            dep_date_fmt=dep_date_fmt,
+            return_date_fmt=return_date_fmt,
+            flight_infos=[
+                {"flightNo": outbound_flight, "depCity": dep_city, "arrCity": arr_city},
+                {"flightNo": inbound_flight, "depCity": arr_city, "arrCity": dep_city},
+            ],
         )
         price_detail["id"] = price_detail_key
-        
+
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}-{return_date_fmt}"
-        
+        now_ts = str(int(datetime.now().timestamp() * 1000))
+
         return {
             "filter2": filter2,
             "flatType": flat_type,
@@ -539,13 +564,20 @@ class FlightMockService:
                     "minPrice": total_price,
                     "nearTakeoff": False,
                     "priceDetails": {price_detail_key: price_detail},
+                    "products": {
+                        "KSCP_ZYBQ": [price_detail_key],
+                        "TANG": [price_detail_key],
+                    },
                     "ext": {"PGS_FLOW_SWITCH": "1"}
                 }]
             },
             "ext": {
                 "searchType": "NORMAL",
                 "FILTER2": filter2,
-                "flatType": flat_type
+                "flatType": flat_type,
+                "PGS_CALLBACK_TIMESTAMP": now_ts,
+                "GDS_CALLBACK_TIMESTAMP": now_ts,
+                "CALL_TIME": now_ts,
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -565,7 +597,7 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y",
+        cabin_num: str = "9",
         flat_type: str = "TC"
     ) -> dict:
         """构建中转单程 Mock 请求
@@ -665,6 +697,14 @@ class FlightMockService:
         
         # 价格详情
         price_detail_key = str(hash(f"{'_'.join(flight_nos)}_{price}") % (10**10))
+        # 构建 flight_infos 用于 unitKey
+        transfer_flight_infos = []
+        for i in range(num_segments):
+            transfer_flight_infos.append({
+                "flightNo": flight_nos[i],
+                "depCity": cities[i],
+                "arrCity": cities[i + 1],
+            })
         total_price, price_detail = self._build_price_detail(
             base_price=price,
             cabin_class=cabin_class,
@@ -673,14 +713,19 @@ class FlightMockService:
             passengers=passengers,
             segment_keys=segment_keys,
             airline=flight_nos[0][:2] if flight_nos else "MU",
-            is_rt=False
+            is_rt=False,
+            dep_city=dep_city,
+            arr_city=arr_city,
+            dep_date_fmt=dep_date_fmt,
+            flight_infos=transfer_flight_infos,
         )
         price_detail["id"] = price_detail_key
-        
+
         # 构建完整请求
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}"
-        flight_no_group = "_".join([f"{fn}_{dep_date_fmt}" for fn in flight_nos])
-        
+        flight_no_group = "/".join([f"{fn}_{dep_date_fmt}" for fn in flight_nos])
+        now_ts = str(int(datetime.now().timestamp() * 1000))
+
         return {
             "filter2": filter2,
             "flatType": flat_type,
@@ -715,13 +760,20 @@ class FlightMockService:
                     "minPrice": total_price,
                     "nearTakeoff": False,
                     "priceDetails": {price_detail_key: price_detail},
+                    "products": {
+                        "KSCP_ZYBQ": [price_detail_key],
+                        "TANG": [price_detail_key],
+                    },
                     "ext": {"PGS_FLOW_SWITCH": "1"}
                 }]
             },
             "ext": {
                 "searchType": "AUTOMATIC",
                 "FILTER2": filter2,
-                "flatType": flat_type
+                "flatType": flat_type,
+                "PGS_CALLBACK_TIMESTAMP": now_ts,
+                "GDS_CALLBACK_TIMESTAMP": now_ts,
+                "CALL_TIME": now_ts,
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -742,7 +794,7 @@ class FlightMockService:
         passengers: list = None,
         cabin_class: str = "Y",
         cabin_name: str = "经济舱",
-        cabin_num: str = "Y",
+        cabin_num: str = "9",
         flat_type: str = "TC"
     ) -> dict:
         """构建中转往返 Mock 请求"""
@@ -887,6 +939,46 @@ class FlightMockService:
         price_detail_key = str(hash(f"{'_'.join(flight_nos)}_{price}") % (10**10))
         # collect all segment keys
         all_segment_keys = [fk["flightKey"] for fk in flight_key_list]
+
+        # 构建 flight_key_overrides: RT 中转需要 airLineIndex 去程=1, 返程=2
+        price_flight_key_overrides = []
+        pd_idx = 1
+        for i in range(num_outbound_segments):
+            fk = flight_key_list[i]
+            price_flight_key_overrides.append({
+                "flightKey": fk["flightKey"],
+                "index": pd_idx,
+                "mainSegment": i == 0,
+                "airLineIndex": 1,
+                "mainAirline": fk.get("mainAirline", ""),
+            })
+            pd_idx += 1
+        for i in range(num_inbound_segments):
+            fk = flight_key_list[num_outbound_segments + i]
+            price_flight_key_overrides.append({
+                "flightKey": fk["flightKey"],
+                "index": pd_idx,
+                "mainSegment": i == 0,
+                "airLineIndex": 2,
+                "mainAirline": fk.get("mainAirline", ""),
+            })
+            pd_idx += 1
+
+        # 构建 flight_infos 用于 unitKey
+        rt_flight_infos = []
+        for i in range(num_outbound_segments):
+            rt_flight_infos.append({
+                "flightNo": flight_nos[i],
+                "depCity": outbound_cities[i],
+                "arrCity": outbound_cities[i + 1],
+            })
+        for i in range(num_inbound_segments):
+            rt_flight_infos.append({
+                "flightNo": flight_nos[num_outbound_segments + i],
+                "depCity": inbound_cities[i],
+                "arrCity": inbound_cities[i + 1],
+            })
+
         total_price, price_detail = self._build_price_detail(
             base_price=price,
             cabin_class=cabin_class,
@@ -895,14 +987,20 @@ class FlightMockService:
             passengers=passengers,
             segment_keys=all_segment_keys,
             airline=flight_nos[0][:2] if flight_nos else "MU",
-            is_rt=True
+            is_rt=True,
+            dep_city=dep_city,
+            arr_city=arr_city,
+            dep_date_fmt=dep_date_fmt,
+            return_date_fmt=return_date_fmt,
+            flight_infos=rt_flight_infos,
+            flight_key_overrides=price_flight_key_overrides,
         )
-        # flight_key_list from our builder logic needs to use index 1,2,3 mapped across RT, we'll let the price builder handle it.
         price_detail["id"] = price_detail_key
-        
+
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}-{return_date_fmt}"
-        flight_no_group = "_".join(outbound_flight_group) + "|" + "_".join(inbound_flight_group)
-        
+        flight_no_group = "/".join(outbound_flight_group) + "|" + "/".join(inbound_flight_group)
+        now_ts = str(int(datetime.now().timestamp() * 1000))
+
         return {
             "filter2": filter2,
             "flatType": flat_type,
@@ -935,13 +1033,20 @@ class FlightMockService:
                     "minPrice": total_price,
                     "nearTakeoff": False,
                     "priceDetails": {price_detail_key: price_detail},
+                    "products": {
+                        "KSCP_ZYBQ": [price_detail_key],
+                        "TANG": [price_detail_key],
+                    },
                     "ext": {"PGS_FLOW_SWITCH": "1"}
                 }]
             },
             "ext": {
                 "searchType": "NORMAL",
                 "FILTER2": filter2,
-                "flatType": flat_type
+                "flatType": flat_type,
+                "PGS_CALLBACK_TIMESTAMP": now_ts,
+                "GDS_CALLBACK_TIMESTAMP": now_ts,
+                "CALL_TIME": now_ts,
             },
             "boardFlightNoGroup": "",
             "boardProductCode": "",
@@ -1034,7 +1139,7 @@ class FlightMockService:
                     passengers=passengers,
                     cabin_class=cabin_class,
                     cabin_name=cabin_name,
-                    cabin_num="F" if cabin_class == "F" else "J" if cabin_class == "C" else "W" if cabin_class == "S" else "Y",
+                    cabin_num="9",
                     flat_type=flat_type
                 )
             else:
@@ -1051,7 +1156,7 @@ class FlightMockService:
                     passengers=passengers,
                     cabin_class=cabin_class,
                     cabin_name=cabin_name,
-                    cabin_num="F" if cabin_class == "F" else "J" if cabin_class == "C" else "W" if cabin_class == "S" else "Y",
+                    cabin_num="9",
                     flat_type=flat_type
                 )
         else:

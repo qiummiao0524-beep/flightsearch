@@ -22,6 +22,12 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers
     flights = []
     for tp in trip_products:
         flight_segments = []
+        # 先构建 airLineIndex → segment count 的映射，用于判断中转
+        airline_index_counts = {}
+        for fk in tp.get("flightKeys", []):
+            ali = fk.get("airLineIndex", 1)
+            airline_index_counts[ali] = airline_index_counts.get(ali, 0) + 1
+
         for fk in tp.get("flightKeys", []):
             segment_key = str(fk.get("flightKey"))
             segment = segments_map.get(segment_key)
@@ -56,7 +62,7 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers
                     },
                     "duration": str(segment.get("duration", 0)),
                     "equip": "",
-                    "is_transfer": fk.get("index", 1) > 1
+                    "is_transfer": airline_index_counts.get(fk.get("airLineIndex", 1), 1) > 1
                 })
         
         # 提取价格
