@@ -81,7 +81,7 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers
             
             key_map = {"ADT": "adultPrice", "CHD": "childPrice", "INF": "infantPrice"}
             price_key = key_map.get(p_type)
-            if price_key and price_key in first_detail:
+            if price_key and price_key in first_detail and first_detail[price_key] is not None:
                 p_detail = first_detail[price_key]
                 p_total = p_detail.get("totalPrice", 0)
                 p_base = p_detail.get("price", 0)

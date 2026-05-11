@@ -478,7 +478,12 @@ class LLMService:
             max_tokens=2000,
             temperature=0.7,
         )
-        return response.content[0].text
+        # thinking 模型会返回 ThinkingBlock + TextBlock，需跳过 ThinkingBlock
+        for block in response.content:
+            if hasattr(block, "text"):
+                return block.text
+        # 兜底：都没有 text 属性时，尝试强转
+        return str(response.content[0])
 
     async def _call_openai(self, user_content: str, history: list) -> str:
         """调用 OpenAI 兼容协议（DeepSeek 等公网）"""

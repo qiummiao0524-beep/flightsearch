@@ -71,8 +71,17 @@ class FlightMockService:
         
         if travel_type == "OW":
             if transfer_cities:
+                # BUG#2 fix: 为中转每段生成独立航班号
+                num_ow_segments = len(transfer_cities) + 1
+                ow_flight_nos = [flight_no]
+                for i in range(1, num_ow_segments):
+                    try:
+                        base_num = int(flight_no[2:])
+                        ow_flight_nos.append(f"{airline}{base_num + i:04d}")
+                    except Exception:
+                        ow_flight_nos.append(f"{airline}{random.randint(1000, 9999)}")
                 return self._build_transfer_ow_mock_request(
-                    dep_city, arr_city, dep_date, [flight_no], transfer_cities, 
+                    dep_city, arr_city, dep_date, ow_flight_nos, transfer_cities,
                     dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num, flat_type
                 )
             else:
@@ -82,8 +91,19 @@ class FlightMockService:
                 )
         else:  # RT
             if transfer_cities:
+                # BUG#1 fix: 为中转往返每段生成独立航班号
+                num_out_segments = len(transfer_cities) + 1
+                num_in_segments = len(transfer_cities) + 1
+                total_segments = num_out_segments + num_in_segments
+                rt_flight_nos = [flight_no]
+                for i in range(1, total_segments):
+                    try:
+                        base_num = int(flight_no[2:])
+                        rt_flight_nos.append(f"{airline}{base_num + i:04d}")
+                    except Exception:
+                        rt_flight_nos.append(f"{airline}{random.randint(1000, 9999)}")
                 return self._build_transfer_rt_mock_request(
-                    dep_city, arr_city, dep_date, return_date, [flight_no, flight_no],
+                    dep_city, arr_city, dep_date, return_date, rt_flight_nos,
                     transfer_cities, dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num, flat_type
                 )
             else:
@@ -115,7 +135,7 @@ class FlightMockService:
             flight_infos: 用于 unitKey 的航班信息列表，每项 {"flightNo": ..., "depCity": ..., "arrCity": ...}
             flight_key_overrides: 中转RT场景覆盖priceDetail内flightKeys（含正确的airLineIndex）
         """
-        tax = 100 if is_rt else 364
+        tax = 364
         if is_rt:
             base_price = base_price * 2
 
@@ -558,7 +578,7 @@ class FlightMockService:
                 "tripProducts": [{
                     "flightKeys": [
                         {"flightKey": outbound_key, "index": 1, "mainSegment": True, "airLineIndex": 1, "mainAirline": airline},
-                        {"flightKey": inbound_key, "index": 2, "mainSegment": True, "airLineIndex": 2, "mainAirline": airline}
+                        {"flightKey": inbound_key, "index": 2, "mainSegment": False, "airLineIndex": 2, "mainAirline": ""}
                     ],
                     "flightNoGroup": f"{outbound_flight}_{dep_date_fmt}|{inbound_flight}_{return_date_fmt}",
                     "minPrice": total_price,
@@ -682,17 +702,17 @@ class FlightMockService:
                 "mileage": 0,
                 "operatingAirline": airline,
                 "operatingFlightNo": flight_no,
-                "stopTime": 0 if i == 0 else int(TRANSFER_TIME_MS / 60000),  # 中转等待时间（分钟）
+                "stopTime": 0,
                 "stops": []
             }
-            
+
             segments[segment_key] = segment
             flight_key_list.append({
                 "flightKey": segment_key,
                 "index": i + 1,
                 "mainSegment": i == 0,
                 "airLineIndex": 1,
-                "mainAirline": airline
+                "mainAirline": airline if i == 0 else ""
             })
         
         # 价格详情
@@ -872,7 +892,7 @@ class FlightMockService:
                 "mileage": 0,
                 "operatingAirline": airline,
                 "operatingFlightNo": flight_no,
-                "stopTime": 0 if i == 0 else int(TRANSFER_TIME_MS / 60000),
+                "stopTime": 0,
                 "stops": []
             }
             segments[segment_key] = segment
@@ -921,7 +941,7 @@ class FlightMockService:
                 "mileage": 0,
                 "operatingAirline": airline,
                 "operatingFlightNo": flight_no,
-                "stopTime": 0 if i == 0 else int(TRANSFER_TIME_MS / 60000),
+                "stopTime": 0,
                 "stops": []
             }
             segments[segment_key] = segment
@@ -1110,7 +1130,17 @@ class FlightMockService:
         if is_transfer:
             # 中转航班 Mock
             if flight_no and "/" in flight_no:
-                flight_nos = [fn.strip() for fn in flight_no.split("/")]
+                # RT 场景先按 "|" 分去程/返程，再按 "/" 分各段
+                if travel_type == "RT" and "|" in flight_no:
+                    parts = flight_no.split("|")
+                    outbound_nos = [fn.strip() for fn in parts[0].split("/")]
+                    inbound_nos = [fn.strip() for fn in parts[1].split("/")]
+                    flight_nos = outbound_nos + inbound_nos
+                else:
+                    flight_nos = [fn.strip() for fn in flight_no.split("/")]
+            elif flight_no and "|" in flight_no:
+                # RT 直飞场景：两个航班号用 | 分隔
+                flight_nos = [fn.strip() for fn in flight_no.split("|")]
             else:
                 num_segments = (len(transfer_cities) + 1) * (2 if travel_type == "RT" else 1)
                 airline = airline_code or "MU"
@@ -1161,13 +1191,17 @@ class FlightMockService:
                 )
         else:
             # 普通航班 Mock
+            # RT 场景: 支持 "|" 分隔去程/返程航班号 (如 "KE6767|KE8877")
+            actual_flight_no = flight_no
+            if travel_type == "RT" and flight_no and "|" in flight_no:
+                actual_flight_no = flight_no.split("|")[0].strip()
             mock_data = self.build_mock_request(
                 dep_city=dep_city,
                 arr_city=arr_city,
                 dep_date=dep_date,
                 travel_type=travel_type,
                 return_date=return_date,
-                flight_no=flight_no,
+                flight_no=actual_flight_no,
                 airline_code=airline_code,
                 transfer_cities=transfer_cities,
                 passengers=passengers,
