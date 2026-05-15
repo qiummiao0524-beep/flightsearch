@@ -114,7 +114,7 @@ def extract_mock_flights(mock_request: dict, travel_type: str = "OW", passengers
             "type": "INTL_NORMAL",
             "travel_type": travel_type,
             "segments": flight_segments,
-            "is_transfer": len(flight_segments) > 1,
+            "is_transfer": any(s.get("is_transfer") for s in flight_segments),
             "cabin_class": cabin_class,
             "cabin_name": cabin_name,
             "cabin_num": cabin_num,

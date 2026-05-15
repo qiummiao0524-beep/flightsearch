@@ -112,6 +112,53 @@ class FlightMockService:
                     flight_no, airline, dep_time, adjusted_price, trace_id, passengers, cabin_class, cabin_name, cabin_num, flat_type
                 )
 
+    @staticmethod
+    def _build_full_req_passengers(passengers: list) -> list:
+        """构建完整的乘客类型列表，始终包含 ADT/CHD/INF 三个类型"""
+        type_count = {"ADT": 0, "CHD": 0, "INF": 0}
+        for p in passengers:
+            pt = p.get("type", "ADT")
+            if pt in type_count:
+                type_count[pt] = p.get("count", 0)
+        return [
+            {"passengerType": "ADT", "passengerCount": type_count["ADT"]},
+            {"passengerType": "CHD", "passengerCount": type_count["CHD"]},
+            {"passengerType": "INF", "passengerCount": type_count["INF"]},
+        ]
+
+    @staticmethod
+    def _build_products(price_detail_key: str) -> dict:
+        """构建完整的产品码索引（9 个标准频道）"""
+        codes = [
+            "KSCP_ZYBQ", "TANG", "DEXL_ZYBQ", "TGKS_ZYBQ", "SWTH_ZYBQ",
+            "XSMFT_ZYBQ", "XCWY_ZYBQ", "KINTUEM_NORM", "GTCJXTJ_ZYBQ",
+        ]
+        return {code: [price_detail_key] for code in codes}
+
+    @staticmethod
+    def _enrich_mock_request(data: dict) -> dict:
+        """为 Mock 数据补充标准字段（顶层 + tripProduct 层）"""
+        data.setdefault("memberInfo", None)
+        data.setdefault("method", None)
+        data.setdefault("platId", "")
+        data.setdefault("refId", "")
+        data.setdefault("reqAppUk", "")
+        data.setdefault("reqId", "")
+        data.setdefault("reqInstIp", "")
+        data.setdefault("userFeatures", None)
+        ext = data.setdefault("ext", {})
+        ext.setdefault("isRealReqted", "1")
+        ext.setdefault("needFilter", "false")
+        tp = data.get("tripProduct", {})
+        tp.setdefault("metricsSize", 1)
+        tp.setdefault("times", 0)
+        for prod in tp.get("tripProducts", []):
+            prod.setdefault("createTime", 0)
+            prod.setdefault("id", "")
+            prod.setdefault("remain", False)
+            prod.setdefault("productIndexes", None)
+        return data
+
     def _build_price_detail(
         self,
         base_price: int,
@@ -266,6 +313,30 @@ class FlightMockService:
                 "tax": p_tax,
                 "totalPrice": p_total
             }
+
+        # 无 CHD 乘客时，仍生成 childPrice（参考数据始终携带）
+        if "childPrice" not in price_detail:
+            child_base = int(base_price * 0.75)
+            price_detail["childPrice"] = {
+                "QValue": 0,
+                "bidMaxPrice": child_base,
+                "bidMinPrice": child_base,
+                "enginePrice": child_base,
+                "extFees": ext_fees,
+                "gdsPrice": {"QValue": 0.0, "currency": "CNY", "netPrice": float(child_base), "netTax": 0.0},
+                "merchantPrice": child_base,
+                "netPrice": child_base,
+                "passengerType": "CHD",
+                "price": child_base,
+                "tax": 0,
+                "totalPrice": child_base,
+            }
+
+        # segmentCabins: 每个航段的舱位信息
+        price_detail["segmentCabins"] = [
+            {"cabinClass": cabin_class, "cabinCode": cabin_class, "index": fk.get("index", i + 1)}
+            for i, fk in enumerate(price_detail["flightKeys"])
+        ]
 
         price_detail["allPrice"] = total_price_all_passengers
         return total_price_all_passengers, price_detail
@@ -546,7 +617,7 @@ class FlightMockService:
         filter2 = f"{dep_city}-{arr_city}-{dep_date_fmt}-{return_date_fmt}"
         now_ts = str(int(datetime.now().timestamp() * 1000))
 
-        return {
+        return self._enrich_mock_request({
             "filter2": filter2,
             "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
@@ -559,9 +630,7 @@ class FlightMockService:
                     "travelType": "RT",
                     "bookingClass": ["Y", "S", "C", "F"],
                     "passengerCount": total_p_count,
-                    "reqPassengers": [
-                        {"passengerType": p["type"], "passengerCount": p["count"]} for p in passengers
-                    ],
+                    "reqPassengers": self._build_full_req_passengers(passengers),
                     "reqUserLines": [
                         {"index": 1, "depCityCode": dep_city, "arrCityCode": arr_city, "depDate": f"{dep_date} 00:00:00.000"},
                         {"index": 2, "depCityCode": arr_city, "arrCityCode": dep_city, "depDate": f"{return_date} 00:00:00.000"}
@@ -584,10 +653,7 @@ class FlightMockService:
                     "minPrice": total_price,
                     "nearTakeoff": False,
                     "priceDetails": {price_detail_key: price_detail},
-                    "products": {
-                        "KSCP_ZYBQ": [price_detail_key],
-                        "TANG": [price_detail_key],
-                    },
+                    "products": self._build_products(price_detail_key),
                     "ext": {"PGS_FLOW_SWITCH": "1"}
                 }]
             },
@@ -602,7 +668,7 @@ class FlightMockService:
             "boardFlightNoGroup": "",
             "boardProductCode": "",
             "checkFlightNoGroup": ""
-        }
+        })
     
     def _build_transfer_ow_mock_request(
         self,
@@ -746,22 +812,20 @@ class FlightMockService:
         flight_no_group = "/".join([f"{fn}_{dep_date_fmt}" for fn in flight_nos])
         now_ts = str(int(datetime.now().timestamp() * 1000))
 
-        return {
+        return self._enrich_mock_request({
             "filter2": filter2,
             "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
             "resourceType": "TCPL",
             "traceId": trace_id,
-            "searchScene": "AUTOMATIC",
+            "searchScene": "NORMAL",
             "searchParamRequest": {
                 "limitReq": {"maxAge": 0, "minAge": 0, "nations": []},
                 "userCommonReq": {
                     "travelType": "OW",
                     "bookingClass": ["Y", "S", "C", "F"],
                     "passengerCount": total_p_count,
-                    "reqPassengers": [
-                        {"passengerType": p["type"], "passengerCount": p["count"]} for p in passengers
-                    ],
+                    "reqPassengers": self._build_full_req_passengers(passengers),
                     "reqUserLines": [{
                         "index": 1,
                         "depCityCode": dep_city,
@@ -780,15 +844,12 @@ class FlightMockService:
                     "minPrice": total_price,
                     "nearTakeoff": False,
                     "priceDetails": {price_detail_key: price_detail},
-                    "products": {
-                        "KSCP_ZYBQ": [price_detail_key],
-                        "TANG": [price_detail_key],
-                    },
+                    "products": self._build_products(price_detail_key),
                     "ext": {"PGS_FLOW_SWITCH": "1"}
                 }]
             },
             "ext": {
-                "searchType": "AUTOMATIC",
+                "searchType": "NORMAL",
                 "FILTER2": filter2,
                 "flatType": flat_type,
                 "PGS_CALLBACK_TIMESTAMP": now_ts,
@@ -798,7 +859,7 @@ class FlightMockService:
             "boardFlightNoGroup": "",
             "boardProductCode": "",
             "checkFlightNoGroup": ""
-        }
+        })
     
     def _build_transfer_rt_mock_request(
         self,
@@ -896,12 +957,14 @@ class FlightMockService:
                 "stops": []
             }
             segments[segment_key] = segment
+            # 去程: mainSegment 标记在最后一段（到达目的城市的那段）
+            is_main = (i == num_outbound_segments - 1)
             flight_key_list.append({
                 "flightKey": segment_key,
                 "index": segment_index,
-                "mainSegment": i == 0,
+                "mainSegment": is_main,
                 "airLineIndex": 1,
-                "mainAirline": airline if i == 0 else ""
+                "mainAirline": airline if is_main else ""
             })
             outbound_flight_group.append(f"{flight_no}_{dep_date_fmt}")
             segment_index += 1
@@ -968,7 +1031,7 @@ class FlightMockService:
             price_flight_key_overrides.append({
                 "flightKey": fk["flightKey"],
                 "index": pd_idx,
-                "mainSegment": i == 0,
+                "mainSegment": i == num_outbound_segments - 1,
                 "airLineIndex": 1,
                 "mainAirline": fk.get("mainAirline", ""),
             })
@@ -1021,7 +1084,7 @@ class FlightMockService:
         flight_no_group = "/".join(outbound_flight_group) + "|" + "/".join(inbound_flight_group)
         now_ts = str(int(datetime.now().timestamp() * 1000))
 
-        return {
+        return self._enrich_mock_request({
             "filter2": filter2,
             "flatType": flat_type,
             "resourceId": "EBOOKING-PRICING",
@@ -1034,9 +1097,7 @@ class FlightMockService:
                     "travelType": "RT",
                     "bookingClass": ["Y", "S", "C", "F"],
                     "passengerCount": total_p_count,
-                    "reqPassengers": [
-                        {"passengerType": p["type"], "passengerCount": p["count"]} for p in passengers
-                    ],
+                    "reqPassengers": self._build_full_req_passengers(passengers),
                     "reqUserLines": [
                         {"index": 1, "depCityCode": dep_city, "arrCityCode": arr_city, "depDate": f"{dep_date} 00:00:00.000"},
                         {"index": 2, "depCityCode": arr_city, "arrCityCode": dep_city, "depDate": f"{return_date} 00:00:00.000"}
@@ -1053,10 +1114,7 @@ class FlightMockService:
                     "minPrice": total_price,
                     "nearTakeoff": False,
                     "priceDetails": {price_detail_key: price_detail},
-                    "products": {
-                        "KSCP_ZYBQ": [price_detail_key],
-                        "TANG": [price_detail_key],
-                    },
+                    "products": self._build_products(price_detail_key),
                     "ext": {"PGS_FLOW_SWITCH": "1"}
                 }]
             },
@@ -1071,7 +1129,7 @@ class FlightMockService:
             "boardFlightNoGroup": "",
             "boardProductCode": "",
             "checkFlightNoGroup": ""
-        }
+        })
 
     def _wrap_request(self, mock_data: dict) -> dict:
         """将 Mock 数据包装成接口需要的格式
